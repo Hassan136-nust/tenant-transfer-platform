@@ -18,6 +18,9 @@ export default function TransferPage() {
   const [notice, setNotice] = useState("");
   const [error, setError] = useState("");
 
+  const [pendingTransferCount, setPendingTransferCount] = useState<number | null>(null);
+  const [checkingEligibility, setCheckingEligibility] = useState(false);
+
   const targetOrg = organizations.find((o) => o.id === selectedRecipient);
   const recipientOrgName = targetOrg ? targetOrg.name : 'Choose target workspace';
 
@@ -27,6 +30,32 @@ export default function TransferPage() {
       router.replace("/login");
     }
   }, [email, sessionLoading, router]);
+
+  // Fetch transfer eligibility whenever selected recipient is updated
+  useEffect(() => {
+    if (email && selectedRecipient) {
+      const fetchEligibility = async () => {
+        try {
+          setCheckingEligibility(true);
+          const res = await fetch(`/api/transfer?recipientOrgId=${selectedRecipient}`);
+          if (res.ok) {
+            const data = await res.json();
+            setPendingTransferCount(data.pendingCount);
+          } else {
+            setPendingTransferCount(null);
+          }
+        } catch (err) {
+          console.error("Checking transfer eligibility failed:", err);
+          setPendingTransferCount(null);
+        } finally {
+          setCheckingEligibility(false);
+        }
+      };
+      fetchEligibility();
+    } else {
+      setPendingTransferCount(null);
+    }
+  }, [email, selectedRecipient]);
 
   // Fetch dynamic targeting options on mounts
   useEffect(() => {
@@ -159,12 +188,31 @@ export default function TransferPage() {
               <span style={{ color: "var(--muted)", fontSize: "13.5px" }}>Destination Recipient:</span>
               <strong style={{ color: "var(--primary-2)", fontSize: "14px", fontWeight: "700" }}>{recipientOrgName}</strong>
             </div>
-            <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", borderBottom: selectedRecipient ? "1px solid rgba(255, 255, 255, 0.05)" : "none", padding: "12px 0" }}>
               <span style={{ color: "var(--muted)", fontSize: "13.5px" }}>Database Records Ready:</span>
               <strong style={{ color: "#ffffff", fontFamily: "monospace", fontSize: "14px" }}>
                 {loading ? "Reckoning..." : rowCount !== null ? `${rowCount.toLocaleString()} rows` : "0 rows"}
               </strong>
             </div>
+            {selectedRecipient && (
+              <div style={{ display: "flex", justifyContent: "space-between", padding: "12px 0" }}>
+                <span style={{ color: "var(--muted)", fontSize: "13.5px" }}>Pending Record Sync:</span>
+                <strong style={{
+                  color: checkingEligibility
+                    ? "var(--muted)"
+                    : pendingTransferCount === 0
+                      ? "#f43f5e"
+                      : "var(--primary-2)",
+                  fontSize: "14px"
+                }}>
+                  {checkingEligibility
+                    ? "Evaluating..."
+                    : pendingTransferCount !== null
+                      ? `${pendingTransferCount.toLocaleString()} new records`
+                      : "Unknown"}
+                </strong>
+              </div>
+            )}
           </div>
 
           <div style={{
@@ -180,6 +228,46 @@ export default function TransferPage() {
             <strong>⚠️ Corporate Isolation Disclaimer:</strong> This transfer action processes immediate, transaction-level cloning inside Neon Postgres. Upon clicking "Transfer Data", a distinct copy of all your active records are generated and permanently bound to {recipientOrgName}. The recipient will maintain its own completely isolated copy post-transfer. Future modifications, deletions, or column additions inside your dashboard will be completely isolated and will not appear in the recipient's views.
           </div>
         </div>
+
+        {selectedRecipient && !checkingEligibility && pendingTransferCount === 0 && (
+          <div style={{
+            background: "rgba(244, 63, 94, 0.03)",
+            border: "1px solid rgba(244, 63, 94, 0.15)",
+            borderLeft: "4px solid #f43f5e",
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            fontSize: "13.5px",
+            color: "#fda4af",
+            lineHeight: 1.5,
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
+          }}>
+            <strong style={{ color: "#ffffff", fontSize: "14.5px" }}>⚠️ Data Already Transferred</strong>
+            No duplicate transfers are allowed. Your current database ledger is already fully synced with <strong>{recipientOrgName}</strong>. This transfer transaction is locked until new records are populated or existing records are updated in your workspace.
+          </div>
+        )}
+
+        {selectedRecipient && !checkingEligibility && pendingTransferCount !== null && pendingTransferCount > 0 && (
+          <div style={{
+            background: "rgba(20, 184, 166, 0.03)",
+            border: "1px solid rgba(20, 184, 166, 0.12)",
+            borderLeft: "4px solid var(--primary-2)",
+            borderRadius: "12px",
+            padding: "16px 20px",
+            marginBottom: "24px",
+            fontSize: "13.5px",
+            color: "#b2f5ea",
+            lineHeight: 1.5,
+            display: "flex",
+            flexDirection: "column",
+            gap: "4px"
+          }}>
+            <strong style={{ color: "#ffffff", fontSize: "14.5px" }}>✨ Ready for Ledger Import</strong>
+            Detected <strong>{pendingTransferCount} pending record(s)</strong> that have not yet been synchronized with <strong>{recipientOrgName}</strong>. Proceeding will migrate only these matching segments transactionally.
+          </div>
+        )}
 
         <form onSubmit={handleInitiateTransfer} className="form-grid">
           <div>
@@ -223,9 +311,9 @@ export default function TransferPage() {
               id="message"
               value={message}
               onChange={(e) => setMessage(e.target.value)}
-              placeholder="Provide context or instructions to attach to this data ledger transfer (e.g. 'Migrating Q1 Consolidated Financial Ledgers for HR review')..."
+              placeholder="Provide context or instructions to attach to this data ledger transfer (e.g. 'Migrating Q1 Consolidated Financial Ledgers for HR review')...."
               required
-              disabled={actionLoading || rowCount === null || rowCount === 0 || !selectedRecipient}
+              disabled={actionLoading || rowCount === null || rowCount === 0 || !selectedRecipient || pendingTransferCount === 0}
               style={{
                 padding: "16px",
                 fontSize: "14.5px",
@@ -244,15 +332,39 @@ export default function TransferPage() {
           <button
             type="submit"
             className="btn"
-            disabled={actionLoading || rowCount === null || rowCount === 0 || !message.trim() || !selectedRecipient}
+            disabled={
+              actionLoading ||
+              checkingEligibility ||
+              rowCount === null ||
+              rowCount === 0 ||
+              pendingTransferCount === 0 ||
+              !message.trim() ||
+              !selectedRecipient
+            }
             style={{
               height: "52px",
               fontSize: "15px",
               marginTop: "8px",
-              boxShadow: "0 6px 20px rgba(20, 184, 166, 0.2)"
+              boxShadow: pendingTransferCount === 0
+                ? "none"
+                : "0 6px 20px rgba(20, 184, 166, 0.2)",
+              background: pendingTransferCount === 0
+                ? "rgba(255, 255, 255, 0.05)"
+                : undefined,
+              color: pendingTransferCount === 0
+                ? "rgba(255,255,255,0.3)"
+                : undefined,
+              border: pendingTransferCount === 0
+                ? "1px solid rgba(255,255,255,0.05)"
+                : undefined,
+              cursor: pendingTransferCount === 0 ? "not-allowed" : "pointer"
             }}
           >
-            {actionLoading ? "Executing Cloning Transaction..." : "🚀 Authenticate and Transfer Data"}
+            {actionLoading
+              ? "Executing Cloning Transaction..."
+              : pendingTransferCount === 0
+                ? "🔒 Duplicate Transfer Suspended"
+                : "🚀 Authenticate and Transfer Data"}
           </button>
         </form>
       </div>

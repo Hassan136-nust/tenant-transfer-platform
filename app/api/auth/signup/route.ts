@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { query, seedOrganizationRows } from "../../../lib/db";
 import { signSession } from "../../../lib/auth";
 import bcrypt from "bcryptjs";
+import { validateEmail, getValidationErrorMessage } from "../../../lib/zerobounce";
 
 const MASTER_OTP = process.env.MASTER_OTP || "777777";
 
