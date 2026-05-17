@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "../components/app-shell";
 import { useDemoSession } from "../components/demo-session-provider";
@@ -21,6 +21,9 @@ export default function TransferPage() {
   const [pendingTransferCount, setPendingTransferCount] = useState<number | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
 
+  // Client-side cache memory to make calculation switches 100% instant
+  const eligibilityCache = useRef<Record<string, number>>({});
+
   const targetOrg = organizations.find((o) => o.id === selectedRecipient);
   const recipientOrgName = targetOrg ? targetOrg.name : 'Choose target workspace';
 
@@ -34,13 +37,22 @@ export default function TransferPage() {
   // Fetch transfer eligibility whenever selected recipient is updated
   useEffect(() => {
     if (email && selectedRecipient) {
+      // 1. Resolve from local cache immediately (0ms logic) if valid
+      if (eligibilityCache.current[selectedRecipient] !== undefined) {
+        setPendingTransferCount(eligibilityCache.current[selectedRecipient]);
+        return;
+      }
+
       const fetchEligibility = async () => {
         try {
           setCheckingEligibility(true);
           const res = await fetch(`/api/transfer?recipientOrgId=${selectedRecipient}`);
           if (res.ok) {
             const data = await res.json();
-            setPendingTransferCount(data.pendingCount);
+            const count = data.pendingCount ?? 0;
+            // 2. Commit to cache memory
+            eligibilityCache.current[selectedRecipient] = count;
+            setPendingTransferCount(count);
           } else {
             setPendingTransferCount(null);
           }
@@ -113,6 +125,8 @@ export default function TransferPage() {
 
       const data = await res.json();
       if (res.ok && data.success) {
+        // Invalidate dynamic calculation caches
+        eligibilityCache.current = {};
         setNotice(data.message);
         setMessage("");
         setSelectedRecipient("");
