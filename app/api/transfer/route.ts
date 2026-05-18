@@ -94,9 +94,12 @@ export async function POST(request: Request) {
         const recipient = recipientResult.rows[0];
 
         // Always resolve actual contact emails from .env.local or fallback to DB-registered emails
-        const recipientEmail = recipientOrgId === "org-a"
+        const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
+        const betaOrgId = process.env.BETA_ORG_ID || "org-b";
+
+        const recipientEmail = recipientOrgId === alphaOrgId
             ? (process.env.ALPHA_EMAIL || recipient.email)
-            : recipientOrgId === "org-b"
+            : recipientOrgId === betaOrgId
                 ? (process.env.BETA_EMAIL || recipient.email)
                 : recipient.email;
 
@@ -160,7 +163,8 @@ export async function POST(request: Request) {
         setImmediate(async () => {
             try {
                 const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount);
-                const senderEmail = session.orgId === "org-a"
+                const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
+                const senderEmail = session.orgId === alphaOrgId
                     ? (process.env.ALPHA_EMAIL || "alpha@example.com")
                     : (process.env.BETA_EMAIL || "beta@example.com");
 

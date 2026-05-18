@@ -1,0 +1,75 @@
+Checking DB counts...
+
+Organizations in DB:
+[
+  {
+    "id": "beta",
+    "name": "Beta",
+    "email": "hjamal.bscs24seecs@seecs.edu.pk",
+    "password": "$2b$10$oC3IJ6hZkhES1fULxLmts.20YB4uMSLHT0QBLahAlj1jnEtuOLnXW"
+  },
+  {
+    "id": "alpha",
+    "name": "Alpha",
+    "email": "pyrohassan786@gmail.com",
+    "password": "$2b$10$ihRhzcUcnr4vp7Ot.3Dso.na36X2hhK4ojGQgpdBuGttRShOkKGfm"
+  }
+]
+
+Data counts per org:
+[
+  {
+    "org_id": "alpha",
+    "count": "500"
+  },
+  {
+    "org_id": "beta",
+    "count": "500"
+  }
+]
+
+Transfers:
+[
+  {
+    "id": 1,
+    "sender_org_id": "beta",
+    "recipient_org_id": "alpha",
+    "message": "Testing",
+    "row_count": 500,
+    "transferred_at": "2026-05-18T09:02:25.724Z"
+  }
+]
+
+Sample records:
+[
+  {
+    "id": 1,
+    "org_id": "beta",
+    "record_name": "Q1 Revenue Ledger (Workspace Seed - #1)",
+    "source_record_id": null
+  },
+  {
+    "id": 2,
+    "org_id": "beta",
+    "record_name": "Office Asset Inventory (Workspace Seed - #2)",
+    "source_record_id": null
+  },
+  {
+    "id": 3,
+    "org_id": "beta",
+    "record_name": "System Cache Memory Map (Workspace Seed - #3)",
+    "source_record_id": null
+  },
+  {
+    "id": 4,
+    "org_id": "beta",
+    "record_name": "Employee Benefits Ledger (Workspace Seed - #4)",
+    "source_record_id": null
+  },
+  {
+    "id": 5,
+    "org_id": "beta",
+    "record_name": "Global Asset CDN Registry (Workspace Seed - #5)",
+    "source_record_id": null
+  }
+]

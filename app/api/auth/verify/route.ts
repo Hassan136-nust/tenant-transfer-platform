@@ -41,12 +41,14 @@ export async function POST(request: Request) {
         // Resolve org from env vars
         const alphaEmail = (process.env.ALPHA_EMAIL || "").toLowerCase();
         const betaEmail = (process.env.BETA_EMAIL || "").toLowerCase();
+        const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
+        const betaOrgId = process.env.BETA_ORG_ID || "org-b";
 
-        let orgId = "org-a";
+        let orgId = alphaOrgId;
         let orgName = process.env.ALPHA_ORG_NAME || "Organization Alpha";
 
         if (normalizedEmail === betaEmail) {
-            orgId = "org-b";
+            orgId = betaOrgId;
             orgName = process.env.BETA_ORG_NAME || "Organization Beta";
         }
 
