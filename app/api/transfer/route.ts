@@ -264,14 +264,19 @@ export async function GET(request: Request) {
                 [recipientOrgId, session.orgId]
             ),
             // 3. Count rows in current org that are NOT sourced from the recipient
-            //    (i.e., original rows added by this org itself, not cloned from recipient)
+            //    AND have not yet been transferred to the recipient
             query(
                 `SELECT COUNT(*)::int as new_rows_count
-                FROM organization_data
-                WHERE org_id = $1
-                AND (source_record_id IS NULL OR source_record_id NOT IN (
+                FROM organization_data s
+                WHERE s.org_id = $1
+                AND (s.source_record_id IS NULL OR s.source_record_id NOT IN (
                     SELECT id FROM organization_data WHERE org_id = $2
-                ))`,
+                ))
+                AND NOT EXISTS (
+                    SELECT 1 FROM organization_data r
+                    WHERE r.org_id = $2
+                    AND r.source_record_id = s.id
+                )`,
                 [session.orgId, recipientOrgId]
             ),
         ]);
