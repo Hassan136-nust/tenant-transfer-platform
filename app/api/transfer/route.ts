@@ -233,23 +233,54 @@ export async function GET(request: Request) {
             );
         }
 
-        const res = await query(
-            `SELECT COUNT(*)::int as pending_count
-            FROM organization_data s
-            WHERE s.org_id = $1::VARCHAR(50)
-            AND NOT EXISTS (
-                SELECT 1 FROM organization_data r
-                WHERE r.org_id = $2::VARCHAR(50)
-                AND r.source_record_id = s.id
-            )`,
-            [session.orgId, recipientOrgId]
-        );
+        // Run both checks concurrently
+        const [pendingRes, receivedRes, newRowsRes] = await Promise.all([
+            // 1. Pending records to transfer (as before)
+            query(
+                `SELECT COUNT(*)::int as pending_count
+                FROM organization_data s
+                WHERE s.org_id = $1::VARCHAR(50)
+                AND NOT EXISTS (
+                    SELECT 1 FROM organization_data r
+                    WHERE r.org_id = $2::VARCHAR(50)
+                    AND r.source_record_id = s.id
+                )`,
+                [session.orgId, recipientOrgId]
+            ),
+            // 2. Has this org previously RECEIVED data from the recipient?
+            query(
+                `SELECT COUNT(*)::int as received_count
+                FROM transfers
+                WHERE sender_org_id = $1
+                AND recipient_org_id = $2`,
+                [recipientOrgId, session.orgId]
+            ),
+            // 3. Count rows in current org that are NOT sourced from the recipient
+            //    (i.e., original rows added by this org itself, not cloned from recipient)
+            query(
+                `SELECT COUNT(*)::int as new_rows_count
+                FROM organization_data
+                WHERE org_id = $1
+                AND (source_record_id IS NULL OR source_record_id NOT IN (
+                    SELECT id FROM organization_data WHERE org_id = $2
+                ))`,
+                [session.orgId, recipientOrgId]
+            ),
+        ]);
 
-        const pendingCount = res.rows[0]?.pending_count ?? 0;
+        const pendingCount = pendingRes.rows[0]?.pending_count ?? 0;
+        const receivedCount = receivedRes.rows[0]?.received_count ?? 0;
+        const newRowsCount = newRowsRes.rows[0]?.new_rows_count ?? 0;
+
+        // Warn if: we received from this org before, AND we have no new original rows beyond what came from them
+        const hasReceivedFromRecipient = receivedCount > 0;
+        const dataUnchangedSinceReceived = hasReceivedFromRecipient && newRowsCount === 0;
 
         return NextResponse.json({
             success: true,
-            pendingCount
+            pendingCount,
+            hasReceivedFromRecipient,
+            dataUnchangedSinceReceived,
         });
     } catch (err: any) {
         console.error("[Transfer API GET] Error checking transfer status:", err);
@@ -259,3 +290,4 @@ export async function GET(request: Request) {
         );
     }
 }
+

@@ -20,9 +20,14 @@ export default function TransferPage() {
 
   const [pendingTransferCount, setPendingTransferCount] = useState<number | null>(null);
   const [checkingEligibility, setCheckingEligibility] = useState(false);
+  const [hasReceivedFromRecipient, setHasReceivedFromRecipient] = useState(false);
+  const [dataUnchangedSinceReceived, setDataUnchangedSinceReceived] = useState(false);
+  const [showReverseWarning, setShowReverseWarning] = useState(false);
+  const [reverseCountdown, setReverseCountdown] = useState(3);
+  const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Client-side cache memory to make calculation switches 100% instant
-  const eligibilityCache = useRef<Record<string, number>>({});
+  const eligibilityCache = useRef<Record<string, { count: number; receivedFrom: boolean; unchanged: boolean }>>({});
 
   const targetOrg = organizations.find((o) => o.id === selectedRecipient);
   const recipientOrgName = targetOrg ? targetOrg.name : 'Choose target workspace';
@@ -39,7 +44,10 @@ export default function TransferPage() {
     if (email && selectedRecipient) {
       // 1. Resolve from local cache immediately (0ms logic) if valid
       if (eligibilityCache.current[selectedRecipient] !== undefined) {
-        setPendingTransferCount(eligibilityCache.current[selectedRecipient]);
+        const cached = eligibilityCache.current[selectedRecipient];
+        setPendingTransferCount(cached.count);
+        setHasReceivedFromRecipient(cached.receivedFrom);
+        setDataUnchangedSinceReceived(cached.unchanged);
         return;
       }
 
@@ -50,9 +58,13 @@ export default function TransferPage() {
           if (res.ok) {
             const data = await res.json();
             const count = data.pendingCount ?? 0;
+            const receivedFrom = data.hasReceivedFromRecipient ?? false;
+            const unchanged = data.dataUnchangedSinceReceived ?? false;
             // 2. Commit to cache memory
-            eligibilityCache.current[selectedRecipient] = count;
+            eligibilityCache.current[selectedRecipient] = { count, receivedFrom, unchanged };
             setPendingTransferCount(count);
+            setHasReceivedFromRecipient(receivedFrom);
+            setDataUnchangedSinceReceived(unchanged);
           } else {
             setPendingTransferCount(null);
           }
@@ -66,6 +78,8 @@ export default function TransferPage() {
       fetchEligibility();
     } else {
       setPendingTransferCount(null);
+      setHasReceivedFromRecipient(false);
+      setDataUnchangedSinceReceived(false);
     }
   }, [email, selectedRecipient]);
 
@@ -108,9 +122,37 @@ export default function TransferPage() {
     }
   }, [email, loadRowCount]);
 
+  // Start countdown when warning opens
+  const openReverseWarning = () => {
+    setShowReverseWarning(true);
+    setReverseCountdown(3);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+    countdownRef.current = setInterval(() => {
+      setReverseCountdown((prev) => {
+        if (prev <= 1) {
+          clearInterval(countdownRef.current!);
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+  };
+
+  const closeReverseWarning = () => {
+    setShowReverseWarning(false);
+    if (countdownRef.current) clearInterval(countdownRef.current);
+  };
+
   const handleInitiateTransfer = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedRecipient || !message.trim() || actionLoading || rowCount === 0) return;
+
+    // Show reverse-transfer warning if applicable and not yet confirmed
+    if (dataUnchangedSinceReceived && !showReverseWarning) {
+      openReverseWarning();
+      return;
+    }
+    setShowReverseWarning(false);
 
     setError("");
     setNotice("");
@@ -187,7 +229,7 @@ export default function TransferPage() {
           marginTop: "24px"
         }}>
           {/* Left Column: Transfer Action Cockpit Form */}
-          <form onSubmit={handleInitiateTransfer} style={{
+          <form id="transfer-form" onSubmit={handleInitiateTransfer} style={{
             background: "linear-gradient(145deg, rgba(255, 255, 255, 0.015) 0%, rgba(255, 255, 255, 0.002) 100%)",
             border: "1px solid rgba(255, 255, 255, 0.05)",
             borderRadius: "20px",
@@ -407,6 +449,96 @@ export default function TransferPage() {
           </div>
         </div>
       </div>
+
+      {/* ===== Reverse-Transfer Warning Modal ===== */}
+      {showReverseWarning && (
+        <div style={{
+          position: "fixed", inset: 0, zIndex: 999,
+          background: "rgba(0, 0, 0, 0.75)",
+          backdropFilter: "blur(6px)",
+          display: "flex", alignItems: "center", justifyContent: "center",
+          animation: "fadeIn 0.2s ease"
+        }}>
+          <div style={{
+            background: "linear-gradient(145deg, rgba(24, 30, 46, 0.98), rgba(17, 22, 35, 0.99))",
+            border: "1px solid rgba(251, 191, 36, 0.3)",
+            borderTop: "3px solid #fbbf24",
+            borderRadius: "20px",
+            padding: "36px 40px",
+            maxWidth: "480px",
+            width: "90%",
+            boxShadow: "0 0 50px rgba(251, 191, 36, 0.12), 0 25px 60px rgba(0, 0, 0, 0.6)",
+          }}>
+            {/* Icon + Heading */}
+            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
+              <div style={{
+                width: "46px", height: "46px", borderRadius: "12px",
+                background: "rgba(251, 191, 36, 0.12)",
+                border: "1px solid rgba(251, 191, 36, 0.25)",
+                display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
+              }}>
+                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
+                  <path d="M12 9v4" /><path d="M12 17h.01" />
+                </svg>
+              </div>
+              <div>
+                <p style={{ color: "#fbbf24", fontWeight: 750, fontSize: "16px", margin: 0 }}>
+                  Reverse Transfer Warning
+                </p>
+                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", margin: "2px 0 0 0" }}>
+                  Potential data loop detected
+                </p>
+              </div>
+            </div>
+
+            {/* Body */}
+            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: "14px", lineHeight: 1.7, margin: "0 0 12px 0" }}>
+              You previously <strong style={{ color: "#fbbf24" }}>received data from {recipientOrgName}</strong> and your workspace records have not changed since then.
+            </p>
+            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13.5px", lineHeight: 1.6, margin: "0 0 28px 0" }}>
+              Sending this data back to <strong style={{ color: "#ffffff" }}>{recipientOrgName}</strong> may create a duplication loop. Are you sure you want to proceed?
+            </p>
+
+            {/* Buttons */}
+            <div style={{ display: "flex", gap: "12px" }}>
+              <button
+                onClick={closeReverseWarning}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: "12px", fontSize: "14px", fontWeight: 600,
+                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
+                  color: "rgba(255,255,255,0.6)", cursor: "pointer", transition: "all 0.2s"
+                }}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  closeReverseWarning();
+                  // Resubmit — showReverseWarning will be false so it bypasses the gate
+                  const form = document.getElementById("transfer-form") as HTMLFormElement | null;
+                  if (form) form.requestSubmit();
+                }}
+                disabled={reverseCountdown > 0}
+                style={{
+                  flex: 1, padding: "12px", borderRadius: "12px", fontSize: "14px", fontWeight: 700,
+                  background: reverseCountdown > 0
+                    ? "rgba(251, 191, 36, 0.1)"
+                    : "linear-gradient(135deg, #f59e0b, #d97706)",
+                  border: reverseCountdown > 0
+                    ? "1px solid rgba(251, 191, 36, 0.25)"
+                    : "1px solid #f59e0b",
+                  color: reverseCountdown > 0 ? "#fbbf24" : "#000",
+                  cursor: reverseCountdown > 0 ? "not-allowed" : "pointer",
+                  transition: "all 0.3s"
+                }}
+              >
+                {reverseCountdown > 0 ? `Yes, Send Anyway (${reverseCountdown}s)` : "Yes, Send Anyway"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </AppShell>
   );
 }
