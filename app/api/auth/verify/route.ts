@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { query } from "../../../lib/db";
+import { query, seedOrganizationRows } from "../../../lib/db";
 import { signSession } from "../../../lib/auth";
 
 const MASTER_OTP = process.env.MASTER_OTP || "777777";
@@ -48,6 +48,23 @@ export async function POST(request: Request) {
         if (normalizedEmail === betaEmail) {
             orgId = "org-b";
             orgName = process.env.BETA_ORG_NAME || "Organization Beta";
+        }
+
+        // ⚡ Dynamic Workspace Auto-Provisioning for Static Admins
+        // Since we removed pre-seeding from DB init, static admins get provisioned on successful verification
+        if (normalizedEmail === alphaEmail || normalizedEmail === betaEmail) {
+            await query(`
+                INSERT INTO organizations (id, name, email)
+                VALUES ($1, $2, $3)
+                ON CONFLICT (id) DO NOTHING
+            `, [orgId, orgName, normalizedEmail]);
+
+            const rowCheck = await query("SELECT COUNT(*) FROM organization_data WHERE org_id = $1", [orgId]);
+            const currentRows = parseInt(rowCheck.rows[0].count, 10);
+            if (currentRows === 0) {
+                console.log(`[OTP Verify] Auto-seeding 500 rows for static administrator workspace: ${orgId}`);
+                await seedOrganizationRows(orgId);
+            }
         }
 
         const sessionToken = await signSession({ email: normalizedEmail, orgId, orgName, role: "admin" });
