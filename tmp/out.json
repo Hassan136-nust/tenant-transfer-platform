@@ -1,0 +1,20 @@
+[
+  {
+    "id": "alpha",
+    "name": "Alpha",
+    "email": "pyrohassan786@gmail.com",
+    "password": "$2b$10$GSVw/5z2F9tGivHJk07SzerZVWkOGJyBDq/TbUaoyJwALbO68qIDe"
+  },
+  {
+    "id": "beta",
+    "name": "Beta",
+    "email": "hjamal.bscs24seecs@seecs.edu.pk",
+    "password": "$2b$10$DffwyZKCzyu.JnmGAv0wPOApe9YyyLHVcOiUe1FmNCU0N7PPuz10m"
+  },
+  {
+    "id": "acm",
+    "name": "Acm",
+    "email": "bushranazi698@gmail.com",
+    "password": "$2b$10$ZME4w.gZqsegHKugfSQaceuOB69RkF2KmvrYOUX6P6xUlFQMS8raO"
+  }
+]
