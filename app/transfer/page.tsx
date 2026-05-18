@@ -224,11 +224,14 @@ export default function TransferPage() {
                 }}
               >
                 <option value="" style={{ color: "var(--muted)" }}>-- Select Recipient Workspace --</option>
-                {organizations.map((org) => (
-                  <option key={org.id} value={org.id} style={{ color: "#ffffff" }}>
-                    🏢 {org.name} ({org.id})
-                  </option>
-                ))}
+                {organizations
+                  .filter((org) => org.id !== orgId)
+                  .map((org) => (
+                    <option key={org.id} value={org.id} style={{ color: "#ffffff" }}>
+                      🏢 {org.name} ({org.id})
+                    </option>
+                  ))
+                }
               </select>
               {organizations.length === 0 && (
                 <small style={{ color: "#fca5a5", marginTop: "6.5px", display: "block", fontWeight: "600" }}>

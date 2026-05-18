@@ -53,6 +53,14 @@ export async function POST(request: Request) {
 
         const { message, recipientOrgId } = await request.json();
 
+        // 1.5 Backend Double-Guard: Prevent self-transfer transactions
+        if (session.orgId === recipientOrgId) {
+            return NextResponse.json(
+                { success: false, error: "Self-transfer of workspace data is strictly forbidden." },
+                { status: 400 }
+            );
+        }
+
         // Input validation
         if (!recipientOrgId || typeof recipientOrgId !== "string") {
             return NextResponse.json(

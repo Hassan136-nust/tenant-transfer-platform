@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { verifySession } from "../../../lib/auth";
 import { query } from "../../../lib/db";
+import crypto from "crypto";
 
 export async function GET(request: Request) {
     try {
@@ -20,6 +21,25 @@ export async function GET(request: Request) {
                 { success: false, error: "No active session authentication found." },
                 { status: 401 }
             );
+        }
+
+        // 1.5 Check if token is blacklisted in database
+        const tokenHash = crypto.createHash("sha256").update(token).digest("hex");
+        const blacklistCheck = await query(
+            "SELECT 1 FROM blacklisted_tokens WHERE token_hash = $1",
+            [tokenHash]
+        );
+        if (blacklistCheck.rows.length > 0) {
+            console.warn(`[Session API] Blocked blacklisted token: ${tokenHash}`);
+            const response = NextResponse.json(
+                { success: false, error: "Session has expired or has been logged out." },
+                { status: 401 }
+            );
+            response.headers.set(
+                "Set-Cookie",
+                "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax;"
+            );
+            return response;
         }
 
         // 2. Decode and cryptographically verify JWT signature

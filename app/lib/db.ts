@@ -104,6 +104,14 @@ export async function initDatabase() {
     );
   `);
 
+  // 1.5 Create blacklisted_tokens table to support sign-out session blacklisting
+  await query(`
+    CREATE TABLE IF NOT EXISTS blacklisted_tokens (
+      token_hash VARCHAR(64) PRIMARY KEY,
+      expires_at TIMESTAMP NOT NULL
+    );
+  `);
+
   // 2. Schema loaded cleanly
   console.log("[DB Init] Schema auto-migration complete! Database is clean and ready.");
 }
