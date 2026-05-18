@@ -62,7 +62,7 @@ export async function GET(request: Request) {
       SELECT id, record_name, category, metric_value, security_level, status, custodian_email, created_at
       FROM organization_data
       ${filterClause}
-      ORDER BY id DESC
+      ORDER BY id ASC
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
