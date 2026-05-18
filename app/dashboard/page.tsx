@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import { AppShell } from "../components/app-shell";
 import { useDemoSession } from "../components/demo-session-provider";
@@ -25,10 +25,20 @@ export default function DashboardPage() {
     const [currentPage, setCurrentPage] = useState(1);
     const [totalPages, setTotalPages] = useState(1);
     const [search, setSearch] = useState("");
+    const [searchQuery, setSearchQuery] = useState("");
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
     const [notice, setNotice] = useState("");
     const [error, setError] = useState("");
+
+    // Zero-latency local input debounce to database query sync
+    useEffect(() => {
+        const delay = setTimeout(() => {
+            setSearch(searchQuery);
+            setCurrentPage(1);
+        }, 220);
+        return () => clearTimeout(delay);
+    }, [searchQuery]);
 
     const limit = 10;
 
@@ -74,21 +84,47 @@ export default function DashboardPage() {
         setError("");
         setNotice("");
 
+        // Optimistic UI Insertion - Inject glowing dummy row in 0ms!
+        const tempId = -Math.floor(Math.random() * 1000000) - 1;
+        const backupRows = [...rows];
+        const backupTotal = totalRows;
+
+        const tempRow: RowEntity = {
+            id: tempId,
+            record_name: "Initializing secure ledger...",
+            category: "unlisted",
+            metric_value: 0.00,
+            security_level: "Confidential",
+            status: "Active",
+            custodian_email: "unlisted",
+            created_at: new Date().toISOString()
+        };
+
+        setRows(prev => [tempRow, ...prev.slice(0, limit - 1)]);
+        setTotalRows(prev => prev + 1);
+
         try {
             const res = await fetch("/api/rows", { method: "POST" });
             const data = await res.json();
 
             if (res.ok && data.success) {
                 setNotice(`New record (ID: ${data.row.id}) successfully initialized with 'unlisted' fields.`);
-                // Force reset queries to page 1 and clear search to show the newly inserted row instantly!
+                // Morph optimistic tempRow to the real database row
+                setRows(prev => prev.map(r => r.id === tempId ? data.row : r));
+                setSearchQuery("");
                 setSearch("");
                 setCurrentPage(1);
                 await fetchRows(1, "");
             } else {
+                // Rollback optimistic state if backend transaction fails
+                setRows(backupRows);
+                setTotalRows(backupTotal);
                 setError(data.error || "Failed to initialize new row.");
             }
         } catch (err) {
             console.error("[Dashboard] Add row error:", err);
+            setRows(backupRows);
+            setTotalRows(backupTotal);
             setError("Failed to verify transaction signature.");
         } finally {
             setActionLoading(false);
@@ -101,33 +137,61 @@ export default function DashboardPage() {
         setError("");
         setNotice("");
 
+        // Optimistic UI Purge - Remove rows and decrease quantity in 0ms!
+        const backupRows = [...rows];
+        const backupTotal = totalRows;
+
+        setRows(prev => prev.filter(r => r.id !== rowId));
+        setTotalRows(prev => Math.max(0, prev - 1));
+        setNotice(`Record ID ${rowId} successfully purged from secure enclaves.`);
+
         try {
             const res = await fetch(`/api/rows/${rowId}`, { method: "DELETE" });
             const data = await res.json();
 
             if (res.ok && data.success) {
-                setNotice(`Record ID ${rowId} successfully purged from secure enclaves.`);
-                // Adjust page index if we delete the last item of a page
+                // Adjust pagination page indexes quiet synchronization
                 let targetPage = currentPage;
-                if (rows.length === 1 && currentPage > 1) {
+                if (backupRows.length === 1 && currentPage > 1) {
                     targetPage = currentPage - 1;
                     setCurrentPage(targetPage);
+                    await fetchRows(targetPage, search);
+                } else {
+                    const queryStr = `/api/rows?page=${currentPage}&limit=${limit}&search=${encodeURIComponent(search)}`;
+                    const syncRes = await fetch(queryStr);
+                    if (syncRes.ok) {
+                        const syncData = await syncRes.json();
+                        setRows(syncData.rows || []);
+                        setTotalRows(syncData.totalRows || 0);
+                        setTotalPages(syncData.totalPages || 1);
+                    }
                 }
-                await fetchRows(targetPage, search);
             } else {
+                // Rollback if deletion is unauthorized
+                setRows(backupRows);
+                setTotalRows(backupTotal);
+                setNotice("");
                 setError(data.error || "Delete forbidden.");
             }
         } catch (err) {
             console.error("[Dashboard] Delete error:", err);
+            setRows(backupRows);
+            setTotalRows(backupTotal);
+            setNotice("");
             setError("Row deletion rejected by server safety manager.");
         } finally {
             setActionLoading(false);
         }
     };
 
-    // Compute metrics dynamically for the client dashboard KPI boxes!
-    const confidentialCount = rows.filter(r => r.security_level === "Confidential" || r.security_level === "Highest Clearance").length;
-    const securityRatio = rows.length > 0 ? Math.round((confidentialCount / rows.length) * 100) : 100;
+    // Memoize dynamic calculations to enable instant 0ms client-side rendering reruns
+    const confidentialCount = useMemo(() => {
+        return rows.filter(r => r.security_level === "Confidential" || r.security_level === "Highest Clearance").length;
+    }, [rows]);
+
+    const securityRatio = useMemo(() => {
+        return rows.length > 0 ? Math.round((confidentialCount / rows.length) * 100) : 100;
+    }, [rows, confidentialCount]);
 
     if (sessionLoading || !email) {
         return (
@@ -260,10 +324,9 @@ export default function DashboardPage() {
                         <span style={{ position: "absolute", left: "16px", top: "50%", transform: "translateY(-50%)", color: "var(--primary-2)", fontSize: "16px", pointerEvents: "none" }}>🔍</span>
                         <input
                             type="text"
-                            value={search}
+                            value={searchQuery}
                             onChange={(e) => {
-                                setSearch(e.target.value);
-                                setCurrentPage(1);
+                                setSearchQuery(e.target.value);
                             }}
                             placeholder="Fuzzy search records by ledger name or custodian email..."
                             style={{

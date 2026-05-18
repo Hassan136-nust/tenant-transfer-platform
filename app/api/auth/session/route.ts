@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { verifySession } from "../../../lib/auth";
+import { query } from "../../../lib/db";
 
 export async function GET(request: Request) {
     try {
@@ -37,7 +38,26 @@ export async function GET(request: Request) {
             return response;
         }
 
-        // 3. Return active verified credentials
+        // 3. Query Neon Database to verify organization existence (resolves ghost sessions)
+        const orgCheck = await query(
+            "SELECT id FROM organizations WHERE id = $1",
+            [session.orgId]
+        );
+
+        if (orgCheck.rows.length === 0) {
+            console.warn(`[Session API] Ghost session detected for deleted workspace ID: ${session.orgId}`);
+            const response = NextResponse.json(
+                { success: false, error: "Workspace organization no longer exists." },
+                { status: 401 }
+            );
+            response.headers.set(
+                "Set-Cookie",
+                "session=; Path=/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax;"
+            );
+            return response;
+        }
+
+        // 4. Return active verified credentials
         return NextResponse.json({
             success: true,
             email: session.email,

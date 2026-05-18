@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter } from "next/navigation";
-import { FormEvent, useState } from "react";
+import { FormEvent, useState, useEffect } from "react";
 import { useDemoSession } from "../components/demo-session-provider";
 
 type Step = "credentials" | "otp";
@@ -19,6 +19,143 @@ export default function SignupPage() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState("");
     const [notice, setNotice] = useState("");
+
+    const [isGoogleVerified, setIsGoogleVerified] = useState(false);
+    const [checkingEmail, setCheckingEmail] = useState(false);
+
+    // Live zero-latency check to prevent registering duplicates
+    useEffect(() => {
+        if (!email.trim() || !email.includes("@")) {
+            setError("");
+            return;
+        }
+
+        // Fast path: 0ms client-side check for pre-seeded static administrator profiles
+        const staticEmails = [
+            (process.env.NEXT_PUBLIC_ALPHA_EMAIL?.toLowerCase() || ""),
+            (process.env.NEXT_PUBLIC_BETA_EMAIL?.toLowerCase() || "")
+        ].filter(Boolean);
+        if (staticEmails.includes(email.toLowerCase().trim())) {
+            setError("Email is already registered. Please login instead.");
+            return;
+        }
+
+        const controller = new AbortController();
+        const delayDebounce = setTimeout(async () => {
+            setCheckingEmail(true);
+            try {
+                const res = await fetch(`/api/auth/check-email?email=${encodeURIComponent(email.trim())}`, {
+                    signal: controller.signal
+                });
+                const data = await res.json();
+                if (res.ok && data.success) {
+                    if (data.exists) {
+                        setError("Email is already registered. Please login instead.");
+                    } else {
+                        setError("");
+                    }
+                }
+            } catch (err: any) {
+                if (err.name !== "AbortError") {
+                    console.error("Failed signup email availability check:", err);
+                }
+            } finally {
+                setCheckingEmail(false);
+            }
+        }, 280);
+
+        return () => {
+            controller.abort();
+            clearTimeout(delayDebounce);
+        };
+    }, [email]);
+
+    // Decode standard ID token claims from Google GSI
+    const decodeJwt = (token: string) => {
+        try {
+            const base64Url = token.split('.')[1];
+            const base64 = base64Url.replace(/-/g, '+').replace(/_/g, '/');
+            const jsonPayload = decodeURIComponent(atob(base64).split('').map(function (c) {
+                return '%' + ('00' + c.charCodeAt(0).toString(16)).slice(-2);
+            }).join(''));
+            return JSON.parse(jsonPayload);
+        } catch (e) {
+            console.error("[gsi] JWT Decoding error:", e);
+            return null;
+        }
+    };
+
+    // Pre-load standard Google Identity Services script
+    useEffect(() => {
+        let active = true;
+        let buttonRenderInterval: any;
+
+        const initializeGoogle = () => {
+            if (!active) return;
+
+            if ((window as any).google) {
+                const client_id = process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+                if (!client_id) {
+                    console.warn("[gsi] NEXT_PUBLIC_GOOGLE_CLIENT_ID is not configured in .env.local yet.");
+                    return;
+                }
+                (window as any).google.accounts.id.initialize({
+                    client_id,
+                    callback: (response: any) => {
+                        const decoded = decodeJwt(response.credential);
+                        if (decoded && decoded.email) {
+                            setEmail(decoded.email);
+                            setIsGoogleVerified(true);
+                            setError("");
+                            setNotice(`✓ Google account verified: ${decoded.email}. Enter custom Organization Name and Password below.`);
+                        }
+                    }
+                });
+
+                // Robust DOM polling interval to guarantee visual button render (resolves single-page navigation delays!)
+                let attempts = 0;
+                buttonRenderInterval = setInterval(() => {
+                    attempts++;
+                    const btnElement = document.getElementById("google-signup-btn");
+                    if (btnElement) {
+                        clearInterval(buttonRenderInterval);
+                        (window as any).google.accounts.id.renderButton(
+                            btnElement,
+                            {
+                                theme: "filled_blue",
+                                size: "large",
+                                width: 340,
+                                shape: "pill"
+                            }
+                        );
+                        console.log("[gsi] Google signup button successfully mounted in attempts:", attempts);
+                    } else if (attempts > 30) {
+                        clearInterval(buttonRenderInterval);
+                        console.warn("[gsi] Max DOM polling attempts reached. Sign-up button container not resolvable.");
+                    }
+                }, 50);
+            }
+        };
+
+        // Check if GSI script is already injected on document (due to Next.js route transitions)
+        const existingScript = document.querySelector("script[src='https://accounts.google.com/gsi/client']");
+        if (!existingScript) {
+            const script = document.createElement("script");
+            script.src = "https://accounts.google.com/gsi/client";
+            script.async = true;
+            script.defer = true;
+            script.onload = initializeGoogle;
+            document.head.appendChild(script);
+        } else {
+            // Script is already in document head (SSO session cached) - render button synchronously
+            initializeGoogle();
+        }
+
+        return () => {
+            active = false;
+            if (buttonRenderInterval) clearInterval(buttonRenderInterval);
+        };
+    }, []);
 
     // Step 1 — validate fields & send OTP code
     const handleRequestOtp = async (e: FormEvent) => {
@@ -49,7 +186,7 @@ export default function SignupPage() {
             const otpRes = await fetch("/api/auth/otp", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ email: email.trim() }),
+                body: JSON.stringify({ email: email.trim(), flow: "signup" }),
             });
             const otpData = await otpRes.json();
 
@@ -115,11 +252,28 @@ export default function SignupPage() {
 
                         {error && (
                             <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
-                                <p style={{ color: "#fca5a5", fontSize: "14px" }}>❌ {error}</p>
+                                <p style={{ color: "#fca5a5", fontSize: "14px", margin: 0 }}>❌ {error}</p>
                             </div>
                         )}
 
-                        <form className="form-grid" onSubmit={handleRequestOtp} style={{ marginTop: "20px" }}>
+                        {notice && (
+                            <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
+                                <p style={{ color: "var(--primary-2)", fontSize: "14px", margin: 0 }}>✓ {notice}</p>
+                            </div>
+                        )}
+
+                        <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                            {/* Real Google Signup Button container */}
+                            <div id="google-signup-btn" style={{ minHeight: "44px" }}></div>
+
+                            <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 10px 0", width: "100%" }}>
+                                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                                <span style={{ color: "var(--muted)", fontSize: "11px" }}>or credentials</span>
+                                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                            </div>
+                        </div>
+
+                        <form className="form-grid" onSubmit={handleRequestOtp}>
                             <div>
                                 <label htmlFor="orgName">Organization / Tenant Name</label>
                                 <input
@@ -141,8 +295,13 @@ export default function SignupPage() {
                                     onChange={(e) => setEmail(e.target.value)}
                                     placeholder="admin@acme.com"
                                     required
-                                    disabled={loading}
+                                    disabled={loading || isGoogleVerified}
                                 />
+                                {isGoogleVerified && (
+                                    <span style={{ fontSize: "11.5px", color: "var(--primary-2)", marginTop: "6px", display: "block", fontWeight: 600 }}>
+                                        ✓ Securing: verified securely via Google SSO.
+                                    </span>
+                                )}
                             </div>
                             <div>
                                 <label htmlFor="password">Workspace Admin Password</label>
@@ -156,8 +315,8 @@ export default function SignupPage() {
                                     disabled={loading}
                                 />
                             </div>
-                            <button className="btn" type="submit" disabled={loading} style={{ marginTop: "4px" }}>
-                                {loading ? "Preparing Workspace..." : "Get Verification Code →"}
+                            <button className="btn" type="submit" disabled={loading || checkingEmail || !!error} style={{ marginTop: "4px" }}>
+                                {loading ? "Preparing Workspace..." : checkingEmail ? "Checking..." : "Get Verification Code →"}
                             </button>
                         </form>
 

@@ -88,8 +88,8 @@ export async function POST(request: Request) {
             if (dbQueryRes.rows.length === 0) {
                 console.warn(`[Login] No user found for email: ${normalizedEmail}`);
                 return NextResponse.json(
-                    { success: false, error: "Invalid credentials or organization not found." },
-                    { status: 401 }
+                    { success: false, error: "Email does not exist. Please sign up." },
+                    { status: 404 }
                 );
             }
 

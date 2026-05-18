@@ -15,24 +15,45 @@ export function AppShell({ email, children }: AppShellProps) {
   const { signOut, orgName } = useDemoSession();
 
   const navItems = [
-    { name: "🏢 Dashboard", path: "/dashboard" },
-    { name: "🔄 Transfer Workspace", path: "/transfer" },
-    { name: "📬 Notification Inbox", path: "/inbox" },
+    {
+      name: "Dashboard",
+      path: "/dashboard",
+      icon: (color: string) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}><rect width="7" height="9" x="3" y="3" rx="1" /><rect width="7" height="5" x="14" y="3" rx="1" /><rect width="7" height="9" x="14" y="12" rx="1" /><rect width="7" height="5" x="3" y="16" rx="1" /></svg>
+      )
+    },
+    {
+      name: "Transfer Workspace",
+      path: "/transfer",
+      icon: (color: string) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}><path d="m16 3 4 4-4 4" /><path d="M20 7H9a4 4 0 0 0-4 4v9" /><path d="m8 21-4-4 4-4" /><path d="M4 17h11a4 4 0 0 0 4-4V4" /></svg>
+      )
+    },
+    {
+      name: "Notification Inbox",
+      path: "/inbox",
+      icon: (color: string) => (
+        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ transition: "stroke 0.2s" }}><path d="M22 17a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V9.5C2 7 4 5 6.5 5H18c2.2 0 4 1.8 4 4v8Z" /><path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7" /><path d="M12 19V14" /></svg>
+      )
+    },
   ];
 
   return (
     <div className="app-wrap" style={{ minHeight: "100vh", display: "flex", flexDirection: "column" }}>
       <header className="topbar" style={{
-        borderBottom: "1px solid rgba(255, 255, 255, 0.04)",
+        borderBottom: "1px solid rgba(255, 255, 255, 0.05)",
         paddingBottom: "18px",
         marginBottom: "28px",
         flexWrap: "wrap",
         gap: "16px"
       }}>
-        <div style={{ display: "flex", flexDirection: "column", gap: "2px" }}>
-          <p className="brand" style={{ letterSpacing: "-0.02em", color: "#ffffff", fontWeight: "800", fontSize: "20px" }}>
-            🛡️ Secure Data Portal
-          </p>
+        <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--primary-2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 13c0 5-3.5 7.5-7.66 9.7a1 1 0 0 1-.68 0C7.5 20.5 4 18 4 13V6a1 1 0 0 1 .76-.97l8-2a1 1 0 0 1 .48 0l8 2A1 1 0 0 1 20 6Z" /></svg>
+            <p className="brand" style={{ letterSpacing: "-0.025em", color: "#ffffff", fontWeight: "850", fontSize: "21px", margin: 0 }}>
+              Secure Data Portal
+            </p>
+          </div>
           <div style={{ display: "flex", alignItems: "center", gap: "8px", flexWrap: "wrap" }}>
             <span style={{
               fontSize: "11px",
@@ -53,6 +74,7 @@ export function AppShell({ email, children }: AppShellProps) {
         <nav style={{ display: "flex", gap: "8px", flexGrow: 1, justifyContent: "center", minWidth: "280px" }}>
           {navItems.map((item) => {
             const isActive = pathname === item.path;
+            const activeColor = isActive ? "var(--primary-2)" : "var(--muted)";
             return (
               <Link
                 key={item.path}
@@ -65,23 +87,15 @@ export function AppShell({ email, children }: AppShellProps) {
                   textDecoration: "none",
                   transition: "all 0.2s ease",
                   background: isActive ? "rgba(20, 184, 166, 0.08)" : "transparent",
-                  color: isActive ? "var(--primary-2)" : "var(--muted)",
+                  color: activeColor,
                   border: isActive ? "1px solid rgba(20, 184, 166, 0.2)" : "1px solid transparent",
-                }}
-                onMouseEnter={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = "var(--text)";
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (!isActive) {
-                    e.currentTarget.style.color = "var(--muted)";
-                    e.currentTarget.style.background = "transparent";
-                  }
+                  display: "inline-flex",
+                  alignItems: "center",
+                  gap: "8px"
                 }}
               >
-                {item.name}
+                {item.icon(activeColor)}
+                <span>{item.name}</span>
               </Link>
             );
           })}

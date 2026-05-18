@@ -25,7 +25,7 @@ export async function POST(request: Request) {
             );
         }
 
-        const { email } = await request.json();
+        const { email, flow } = await request.json();
 
         // Input validation
         if (!email || typeof email !== "string") {
@@ -36,6 +36,49 @@ export async function POST(request: Request) {
         }
 
         const normalizedEmail = email.toLowerCase().trim();
+
+        // 🛡️ Load static user emails for existence checks
+        const staticEmails = [
+            (process.env.ALPHA_EMAIL?.toLowerCase() || "alpha@example.com"),
+            (process.env.BETA_EMAIL?.toLowerCase() || "beta@example.com")
+        ];
+
+        // ⚡ Validate existence policies based on active flow type
+        if (flow === "login") {
+            // Under login: Email must exist either in staticUsers or dynamic organizations
+            let exists = staticEmails.includes(normalizedEmail);
+            if (!exists) {
+                const dbRes = await query("SELECT id FROM organizations WHERE email = $1", [normalizedEmail]);
+                if (dbRes.rows.length > 0) {
+                    exists = true;
+                }
+            }
+
+            if (!exists) {
+                console.warn(`[OTP] Rejecting login OTP dispatch for non-existent email: ${normalizedEmail}`);
+                return NextResponse.json(
+                    { success: false, error: "Email does not exist. Please sign up." },
+                    { status: 404 }
+                );
+            }
+        } else if (flow === "signup") {
+            // Under signup: Email must NOT exist (either in staticUsers or dynamic organizations)
+            let exists = staticEmails.includes(normalizedEmail);
+            if (!exists) {
+                const dbRes = await query("SELECT id FROM organizations WHERE email = $1", [normalizedEmail]);
+                if (dbRes.rows.length > 0) {
+                    exists = true;
+                }
+            }
+
+            if (exists) {
+                console.warn(`[OTP] Rejecting signup OTP dispatch for already registered email: ${normalizedEmail}`);
+                return NextResponse.json(
+                    { success: false, error: "Email is already registered. Please login instead." },
+                    { status: 400 }
+                );
+            }
+        }
 
         // Validate email format
         if (!Validators.email(normalizedEmail)) {

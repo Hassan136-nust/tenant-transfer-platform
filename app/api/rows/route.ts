@@ -56,13 +56,6 @@ export async function GET(request: Request) {
             paramIndex++;
         }
 
-        // Call count query
-        const countResult = await query(
-            `SELECT COUNT(*) FROM organization_data ${filterClause}`,
-            sqlParams
-        );
-        const totalRows = parseInt(countResult.rows[0].count, 10);
-
         // Append pagination parameters to parameters list
         const selectParams = [...sqlParams, limit, offset];
         const selectQueryStr = `
@@ -73,7 +66,13 @@ export async function GET(request: Request) {
       LIMIT $${paramIndex} OFFSET $${paramIndex + 1}
     `;
 
-        const selectResult = await query(selectQueryStr, selectParams);
+        // Execute count and paginated rows retrieval concurrently under Neon for zero-latency execution
+        const [countResult, selectResult] = await Promise.all([
+            query(`SELECT COUNT(*) FROM organization_data ${filterClause}`, sqlParams),
+            query(selectQueryStr, selectParams)
+        ]);
+
+        const totalRows = parseInt(countResult.rows[0].count, 10);
 
         return NextResponse.json({
             success: true,
