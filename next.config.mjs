@@ -38,12 +38,12 @@ const nextConfig = {
                         key: 'Content-Security-Policy',
                         value: [
                             "default-src 'self'",
-                            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com",
-                            "style-src 'self' 'unsafe-inline' https://accounts.google.com",
-                            "img-src 'self' data: https: https://lh3.googleusercontent.com https://*.googlecode.com https://*.google.com",
-                            "font-src 'self' data:",
-                            "connect-src 'self' https://api.zerobounce.net https://accounts.google.com",
-                            "frame-src 'self' https://accounts.google.com",
+                            "script-src 'self' 'unsafe-eval' 'unsafe-inline' https://accounts.google.com https://vercel.live https://vercel.com",
+                            "style-src 'self' 'unsafe-inline' https://accounts.google.com https://vercel.live https://fonts.googleapis.com",
+                            "img-src 'self' data: https: https://lh3.googleusercontent.com https://*.googlecode.com https://*.google.com https://vercel.com https://vercel.live",
+                            "font-src 'self' data: https://fonts.gstatic.com",
+                            "connect-src 'self' https://api.zerobounce.net https://accounts.google.com https://*.vercel.live wss://*.vercel.live",
+                            "frame-src 'self' https://accounts.google.com https://vercel.live",
                             "frame-ancestors 'self'",
                         ].join('; ')
                     }
