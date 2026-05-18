@@ -38,23 +38,38 @@ export async function POST(request: Request) {
             return NextResponse.json({ success: false, error: "Invalid or expired OTP code." }, { status: 401 });
         }
 
-        // Resolve org from env vars
+        // Resolve org from DB if dynamic, or env vars if static
+        const dbOrgQuery = await query(
+            "SELECT id, name FROM organizations WHERE email = $1",
+            [normalizedEmail]
+        );
+
+        let orgId = "";
+        let orgName = "";
+
         const alphaEmail = (process.env.ALPHA_EMAIL || "").toLowerCase();
         const betaEmail = (process.env.BETA_EMAIL || "").toLowerCase();
         const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
         const betaOrgId = process.env.BETA_ORG_ID || "org-b";
 
-        let orgId = alphaOrgId;
-        let orgName = process.env.ALPHA_ORG_NAME || "Organization Alpha";
+        if (dbOrgQuery.rows.length > 0) {
+            // Dynamic User
+            orgId = dbOrgQuery.rows[0].id;
+            orgName = dbOrgQuery.rows[0].name;
+        } else {
+            // Predefined Static Admin resolution fallback
+            orgId = alphaOrgId;
+            orgName = process.env.ALPHA_ORG_NAME || "Organization Alpha";
 
-        if (normalizedEmail === betaEmail) {
-            orgId = betaOrgId;
-            orgName = process.env.BETA_ORG_NAME || "Organization Beta";
+            if (normalizedEmail === betaEmail) {
+                orgId = betaOrgId;
+                orgName = process.env.BETA_ORG_NAME || "Organization Beta";
+            }
         }
 
         // ⚡ Dynamic Workspace Auto-Provisioning for Static Admins
         // Since we removed pre-seeding from DB init, static admins get provisioned on successful verification
-        if (normalizedEmail === alphaEmail || normalizedEmail === betaEmail) {
+        if ((normalizedEmail === alphaEmail || normalizedEmail === betaEmail) && dbOrgQuery.rows.length === 0) {
             await query(`
                 INSERT INTO organizations (id, name, email)
                 VALUES ($1, $2, $3)
