@@ -22,12 +22,14 @@ export default function TransferPage() {
   const [checkingEligibility, setCheckingEligibility] = useState(false);
   const [hasReceivedFromRecipient, setHasReceivedFromRecipient] = useState(false);
   const [dataUnchangedSinceReceived, setDataUnchangedSinceReceived] = useState(false);
+  const [newRowsCount, setNewRowsCount] = useState<number>(0);
   const [showReverseWarning, setShowReverseWarning] = useState(false);
-  const [reverseCountdown, setReverseCountdown] = useState(3);
+  const [reverseCountdown, setReverseCountdown] = useState(5);
+  const [transferMode, setTransferMode] = useState<"all" | "new_only">("all");
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   // Client-side cache memory to make calculation switches 100% instant
-  const eligibilityCache = useRef<Record<string, { count: number; receivedFrom: boolean; unchanged: boolean }>>({});
+  const eligibilityCache = useRef<Record<string, { count: number; receivedFrom: boolean; unchanged: boolean; newRowsCount: number }>>({});
 
   const targetOrg = organizations.find((o) => o.id === selectedRecipient);
   const recipientOrgName = targetOrg ? targetOrg.name : 'Choose target workspace';
@@ -48,6 +50,7 @@ export default function TransferPage() {
         setPendingTransferCount(cached.count);
         setHasReceivedFromRecipient(cached.receivedFrom);
         setDataUnchangedSinceReceived(cached.unchanged);
+        setNewRowsCount(cached.newRowsCount);
         return;
       }
 
@@ -60,11 +63,13 @@ export default function TransferPage() {
             const count = data.pendingCount ?? 0;
             const receivedFrom = data.hasReceivedFromRecipient ?? false;
             const unchanged = data.dataUnchangedSinceReceived ?? false;
+            const newRows = data.newRowsCount ?? 0;
             // 2. Commit to cache memory
-            eligibilityCache.current[selectedRecipient] = { count, receivedFrom, unchanged };
+            eligibilityCache.current[selectedRecipient] = { count, receivedFrom, unchanged, newRowsCount: newRows };
             setPendingTransferCount(count);
             setHasReceivedFromRecipient(receivedFrom);
             setDataUnchangedSinceReceived(unchanged);
+            setNewRowsCount(newRows);
           } else {
             setPendingTransferCount(null);
           }
@@ -80,6 +85,7 @@ export default function TransferPage() {
       setPendingTransferCount(null);
       setHasReceivedFromRecipient(false);
       setDataUnchangedSinceReceived(false);
+      setNewRowsCount(0);
     }
   }, [email, selectedRecipient]);
 
@@ -125,7 +131,7 @@ export default function TransferPage() {
   // Start countdown when warning opens
   const openReverseWarning = () => {
     setShowReverseWarning(true);
-    setReverseCountdown(3);
+    setReverseCountdown(5);
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = setInterval(() => {
       setReverseCountdown((prev) => {
@@ -148,7 +154,7 @@ export default function TransferPage() {
     if (!selectedRecipient || !message.trim() || actionLoading || rowCount === 0) return;
 
     // Show reverse-transfer warning if applicable and not yet confirmed
-    if (dataUnchangedSinceReceived && !showReverseWarning) {
+    if (hasReceivedFromRecipient && !showReverseWarning) {
       openReverseWarning();
       return;
     }
@@ -162,7 +168,7 @@ export default function TransferPage() {
       const res = await fetch("/api/transfer", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ message: message.trim(), recipientOrgId: selectedRecipient }),
+        body: JSON.stringify({ message: message.trim(), recipientOrgId: selectedRecipient, transferMode }),
       });
 
       const data = await res.json();
@@ -455,85 +461,174 @@ export default function TransferPage() {
         <div style={{
           position: "fixed", inset: 0, zIndex: 999,
           background: "rgba(0, 0, 0, 0.75)",
-          backdropFilter: "blur(6px)",
+          backdropFilter: "blur(8px)",
           display: "flex", alignItems: "center", justifyContent: "center",
-          animation: "fadeIn 0.2s ease"
+          animation: "fadeIn 0.25s ease"
         }}>
           <div style={{
-            background: "linear-gradient(145deg, rgba(24, 30, 46, 0.98), rgba(17, 22, 35, 0.99))",
-            border: "1px solid rgba(251, 191, 36, 0.3)",
-            borderTop: "3px solid #fbbf24",
-            borderRadius: "20px",
+            background: "linear-gradient(145deg, rgba(20, 26, 42, 0.99), rgba(15, 18, 30, 0.99))",
+            border: "1px solid rgba(251, 191, 36, 0.25)",
+            borderTop: "4px solid #fbbf24",
+            borderRadius: "24px",
             padding: "36px 40px",
-            maxWidth: "480px",
-            width: "90%",
-            boxShadow: "0 0 50px rgba(251, 191, 36, 0.12), 0 25px 60px rgba(0, 0, 0, 0.6)",
+            maxWidth: "520px",
+            width: "92%",
+            boxShadow: "0 0 60px rgba(251, 191, 36, 0.15), 0 30px 70px rgba(0, 0, 0, 0.7)",
+            animation: "scaleUp 0.3s cubic-bezier(0.16, 1, 0.3, 1)"
           }}>
-            {/* Icon + Heading */}
-            <div style={{ display: "flex", alignItems: "center", gap: "14px", marginBottom: "20px" }}>
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: "16px", marginBottom: "24px" }}>
               <div style={{
-                width: "46px", height: "46px", borderRadius: "12px",
+                width: "48px", height: "48px", borderRadius: "14px",
                 background: "rgba(251, 191, 36, 0.12)",
-                border: "1px solid rgba(251, 191, 36, 0.25)",
+                border: "1px solid rgba(251, 191, 36, 0.3)",
                 display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
               }}>
-                <svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="#fbbf24" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                   <path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z" />
                   <path d="M12 9v4" /><path d="M12 17h.01" />
                 </svg>
               </div>
               <div>
-                <p style={{ color: "#fbbf24", fontWeight: 750, fontSize: "16px", margin: 0 }}>
-                  Reverse Transfer Warning
-                </p>
-                <p style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", margin: "2px 0 0 0" }}>
-                  Potential data loop detected
+                <h3 style={{ color: "#fbbf24", fontWeight: 800, fontSize: "18px", margin: 0, letterSpacing: "-0.01em" }}>
+                  Workspace Data Loop Alert
+                </h3>
+                <p style={{ color: "rgba(255,255,255,0.4)", fontSize: "12px", margin: "2px 0 0 0", fontWeight: 500 }}>
+                  Reverse Ledger Sync Authorization
                 </p>
               </div>
             </div>
 
-            {/* Body */}
-            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: "14px", lineHeight: 1.7, margin: "0 0 12px 0" }}>
-              You previously <strong style={{ color: "#fbbf24" }}>received data from {recipientOrgName}</strong> and your workspace records have not changed since then.
-            </p>
-            <p style={{ color: "rgba(255,255,255,0.6)", fontSize: "13.5px", lineHeight: 1.6, margin: "0 0 28px 0" }}>
-              Sending this data back to <strong style={{ color: "#ffffff" }}>{recipientOrgName}</strong> may create a duplication loop. Are you sure you want to proceed?
+            {/* Description */}
+            <p style={{ color: "rgba(255,255,255,0.85)", fontSize: "14.5px", lineHeight: 1.6, margin: "0 0 16px 0" }}>
+              You previously <strong style={{ color: "#fbbf24" }}>received data from {recipientOrgName}</strong>.
             </p>
 
-            {/* Buttons */}
-            <div style={{ display: "flex", gap: "12px" }}>
+            {dataUnchangedSinceReceived ? (
+              // Case 1: Unchanged Data (Duplication warning)
+              <div style={{ marginBottom: "28px" }}>
+                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "13.5px", lineHeight: 1.6, margin: "0 0 12px 0" }}>
+                  Your active workspace ledger remains unchanged since the import. Re-transferring now will trigger a clean duplication loop.
+                </p>
+                <div style={{
+                  background: "rgba(251, 191, 36, 0.05)",
+                  border: "1px solid rgba(251, 191, 36, 0.15)",
+                  borderRadius: "10px", padding: "12px 16px",
+                  fontSize: "12.5px", color: "#fbbf24", display: "flex", gap: "10px", alignItems: "center"
+                }}>
+                  <span>⚠️</span>
+                  <span><strong>Warning:</strong> Direct synchronization of duplicate structures is locked by default.</span>
+                </div>
+              </div>
+            ) : (
+              // Case 2: New original rows exist! Offer Choice Cards
+              <div style={{ marginBottom: "28px" }}>
+                <p style={{ color: "rgba(255,255,255,0.65)", fontSize: "13.5px", lineHeight: 1.6, margin: "0 0 16px 0" }}>
+                  However, you have successfully added <strong style={{ color: "#2dd4bf" }}>{newRowsCount} new original record(s)</strong> since the import. Choose your secure transfer mode:
+                </p>
+
+                {/* Option Cards */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                  {/* Card 1: New Data Only */}
+                  <div
+                    onClick={() => setTransferMode("new_only")}
+                    style={{
+                      padding: "16px 20px", borderRadius: "16px",
+                      background: transferMode === "new_only" ? "rgba(45, 212, 191, 0.05)" : "rgba(255,255,255,0.01)",
+                      border: transferMode === "new_only" ? "1.5px solid #2dd4bf" : "1.5px solid rgba(255,255,255,0.05)",
+                      boxShadow: transferMode === "new_only" ? "0 0 20px rgba(45, 212, 191, 0.1)" : "none",
+                      cursor: "pointer", display: "flex", gap: "14px", alignItems: "flex-start",
+                      transition: "all 0.25s ease"
+                    }}
+                  >
+                    <div style={{
+                      width: "18px", height: "18px", borderRadius: "50%",
+                      border: transferMode === "new_only" ? "5px solid #2dd4bf" : "2px solid rgba(255,255,255,0.3)",
+                      background: "transparent", marginTop: "3px", flexShrink: 0,
+                      transition: "all 0.2s"
+                    }} />
+                    <div>
+                      <strong style={{ color: transferMode === "new_only" ? "#2dd4bf" : "#ffffff", fontSize: "14px", display: "block" }}>
+                        ⚡ Transfer New original data only
+                      </strong>
+                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", display: "block", marginTop: "2px", lineHeight: 1.4 }}>
+                        Syncs only your <strong>{newRowsCount} new record(s)</strong>. Excludes all elements originally Cloned from {recipientOrgName}.
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Card 2: All Data */}
+                  <div
+                    onClick={() => setTransferMode("all")}
+                    style={{
+                      padding: "16px 20px", borderRadius: "16px",
+                      background: transferMode === "all" ? "rgba(251, 191, 36, 0.05)" : "rgba(255,255,255,0.01)",
+                      border: transferMode === "all" ? "1.5px solid #fbbf24" : "1.5px solid rgba(255,255,255,0.05)",
+                      boxShadow: transferMode === "all" ? "0 0 20px rgba(251, 191, 36, 0.1)" : "none",
+                      cursor: "pointer", display: "flex", gap: "14px", alignItems: "flex-start",
+                      transition: "all 0.25s ease"
+                    }}
+                  >
+                    <div style={{
+                      width: "18px", height: "18px", borderRadius: "50%",
+                      border: transferMode === "all" ? "5px solid #fbbf24" : "2px solid rgba(255,255,255,0.3)",
+                      background: "transparent", marginTop: "3px", flexShrink: 0,
+                      transition: "all 0.2s"
+                    }} />
+                    <div>
+                      <strong style={{ color: transferMode === "all" ? "#fbbf24" : "#ffffff", fontSize: "14px", display: "block" }}>
+                        🌀 Transfer whole data pool
+                      </strong>
+                      <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", display: "block", marginTop: "2px", lineHeight: 1.4 }}>
+                        Syncs all <strong>{rowCount} record(s)</strong> currently in this organization dashboard, including duplicates.
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* Actions */}
+            <div style={{ display: "flex", gap: "14px" }}>
               <button
+                type="button"
                 onClick={closeReverseWarning}
                 style={{
-                  flex: 1, padding: "12px", borderRadius: "12px", fontSize: "14px", fontWeight: 600,
-                  background: "rgba(255,255,255,0.05)", border: "1px solid rgba(255,255,255,0.08)",
-                  color: "rgba(255,255,255,0.6)", cursor: "pointer", transition: "all 0.2s"
+                  flex: 1, padding: "14px", borderRadius: "14px", fontSize: "14px", fontWeight: 650,
+                  background: "rgba(255, 255, 255, 0.04)", border: "1px solid rgba(255,255,255,0.07)",
+                  color: "rgba(255,255,255,0.7)", cursor: "pointer", transition: "all 0.25s ease"
                 }}
               >
-                Cancel
+                Abort Sync
               </button>
               <button
+                type="button"
                 onClick={() => {
                   closeReverseWarning();
-                  // Resubmit — showReverseWarning will be false so it bypasses the gate
+                  // Re-submit the form
                   const form = document.getElementById("transfer-form") as HTMLFormElement | null;
                   if (form) form.requestSubmit();
                 }}
                 disabled={reverseCountdown > 0}
                 style={{
-                  flex: 1, padding: "12px", borderRadius: "12px", fontSize: "14px", fontWeight: 700,
+                  flex: 1, padding: "14px", borderRadius: "14px", fontSize: "14px", fontWeight: 700,
                   background: reverseCountdown > 0
-                    ? "rgba(251, 191, 36, 0.1)"
-                    : "linear-gradient(135deg, #f59e0b, #d97706)",
+                    ? "rgba(255, 255, 255, 0.05)"
+                    : transferMode === "new_only" && !dataUnchangedSinceReceived
+                      ? "linear-gradient(135deg, #0d9488, #0f766e)"
+                      : "linear-gradient(135deg, #d97706, #b45309)",
                   border: reverseCountdown > 0
-                    ? "1px solid rgba(251, 191, 36, 0.25)"
-                    : "1px solid #f59e0b",
-                  color: reverseCountdown > 0 ? "#fbbf24" : "#000",
+                    ? "1px solid rgba(255,255,255,0.05)"
+                    : transferMode === "new_only" && !dataUnchangedSinceReceived
+                      ? "1px solid #14b8a6"
+                      : "1px solid #fbbf24",
+                  color: reverseCountdown > 0 ? "rgba(255,255,255,0.3)" : "#ffffff",
                   cursor: reverseCountdown > 0 ? "not-allowed" : "pointer",
+                  boxShadow: reverseCountdown > 0 ? "none" : transferMode === "new_only" && !dataUnchangedSinceReceived ? "0 4px 15px rgba(20, 184, 166, 0.2)" : "0 4px 15px rgba(251, 191, 36, 0.2)",
                   transition: "all 0.3s"
                 }}
               >
-                {reverseCountdown > 0 ? `Yes, Send Anyway (${reverseCountdown}s)` : "Yes, Send Anyway"}
+                {reverseCountdown > 0 ? `Proceed Lock (${reverseCountdown}s)` : "Yes, Synchronize"}
               </button>
             </div>
           </div>

@@ -51,7 +51,8 @@ export async function POST(request: Request) {
             );
         }
 
-        const { message, recipientOrgId } = await request.json();
+        const { message, recipientOrgId, transferMode } = await request.json();
+        const isNewOnly = transferMode === "new_only";
 
         // 1.5 Backend Double-Guard: Prevent self-transfer transactions
         if (session.orgId === recipientOrgId) {
@@ -117,7 +118,7 @@ export async function POST(request: Request) {
         const startTime = Date.now();
 
         // 4. ULTRA-FAST: Single INSERT...SELECT query (no loops, no multiple queries)
-        // This is 100x faster than row-by-row insertion
+        // When transferMode='new_only', exclude rows originally sourced from the recipient
         const transferResult = await client.query(
             `INSERT INTO organization_data (org_id, record_name, category, metric_value, security_level, status, custodian_email, source_record_id)
             SELECT 
@@ -136,6 +137,9 @@ export async function POST(request: Request) {
                 WHERE r.org_id = $2::VARCHAR(50)
                 AND r.source_record_id = s.id
             )
+            ${isNewOnly ? `AND (s.source_record_id IS NULL OR s.source_record_id NOT IN (
+                SELECT id FROM organization_data WHERE org_id = $2::VARCHAR(50)
+            ))` : ""}
             RETURNING id`,
             [session.orgId, recipientOrgId]
         );
@@ -145,7 +149,11 @@ export async function POST(request: Request) {
         if (rowCount === 0) {
             await client.query('ROLLBACK');
             return NextResponse.json(
-                { success: false, error: "No new records to transfer. All data has already been transferred to this organization." },
+                {
+                    success: false, error: isNewOnly
+                        ? "No new original records to transfer. You have no data that wasn't received from this organization."
+                        : "No new records to transfer. All data has already been transferred to this organization."
+                },
                 { status: 400 }
             );
         }
@@ -281,6 +289,7 @@ export async function GET(request: Request) {
             pendingCount,
             hasReceivedFromRecipient,
             dataUnchangedSinceReceived,
+            newRowsCount,
         });
     } catch (err: any) {
         console.error("[Transfer API GET] Error checking transfer status:", err);
