@@ -25,6 +25,8 @@ export default function SignupPage() {
     const [isGoogleVerified, setIsGoogleVerified] = useState(false);
     const [checkingEmail, setCheckingEmail] = useState(false);
     const [showInstructions, setShowInstructions] = useState(false);
+    const [showSeedingWarning, setShowSeedingWarning] = useState(false);
+    const [showSeedingWarningApproved, setShowSeedingWarningApproved] = useState(false);
 
     // Live zero-latency check to prevent registering duplicates
     useEffect(() => {
@@ -211,19 +213,17 @@ export default function SignupPage() {
     const handleCompleteRegister = async (e: FormEvent) => {
         e.preventDefault();
         setError("");
-        setLoading(true);
 
-        if (seedData) {
-            const confirmSeed = window.confirm(
-                "Are you sure you want to seed this workspace with 500 records?\n\nIf this is your second organization/account, please click 'Cancel' to keep the records at 0 for accurate cross-tenant testing. Otherwise, it is your choice to click 'OK' to proceed anyway."
-            );
-            if (!confirmSeed) {
-                setSeedData(false);
-                setLoading(false);
-                return;
-            }
+        if (seedData && !showSeedingWarningApproved) {
+            setShowSeedingWarning(true);
+            return;
         }
 
+        await executeRegistration(seedData);
+    };
+
+    const executeRegistration = async (actualSeeding: boolean) => {
+        setLoading(true);
         try {
             const res = await fetch("/api/auth/signup", {
                 method: "POST",
@@ -233,7 +233,7 @@ export default function SignupPage() {
                     password,
                     orgName: orgName.trim(),
                     otpCode: otp.trim(),
-                    seedData,
+                    seedData: actualSeeding,
                 }),
             });
 
@@ -370,9 +370,7 @@ export default function SignupPage() {
                                         disabled={loading}
                                         style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
                                     />
-                                    <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
-                                        🔑 Use master code <code>777777</code> to bypass email verification in development.
-                                    </span>
+
                                 </div>
 
                                 <div
@@ -519,6 +517,122 @@ export default function SignupPage() {
                     </a>
                 </div>
                 <TestingInstructions isOpen={showInstructions} onClose={() => setShowInstructions(false)} />
+                {showSeedingWarning && (
+                    <div style={{
+                        position: "fixed",
+                        inset: 0,
+                        background: "rgba(0, 0, 0, 0.7)",
+                        backdropFilter: "blur(12px)",
+                        display: "flex",
+                        alignItems: "center",
+                        justifyContent: "center",
+                        zIndex: 10000,
+                        padding: "20px"
+                    }}>
+                        <div style={{
+                            width: "100%",
+                            maxWidth: "460px",
+                            background: "linear-gradient(135deg, rgba(30, 20, 25, 0.9) 0%, rgba(15, 10, 12, 0.98) 100%)",
+                            border: "1px solid rgba(244, 63, 94, 0.25)",
+                            borderRadius: "20px",
+                            boxShadow: "0 20px 40px rgba(0, 0, 0, 0.5), 0 0 30px rgba(244, 63, 94, 0.1)",
+                            padding: "28px",
+                            textAlign: "center",
+                            color: "#ffffff"
+                        }}>
+                            <div style={{
+                                width: "56px",
+                                height: "56px",
+                                borderRadius: "50%",
+                                background: "rgba(244, 63, 94, 0.12)",
+                                border: "1px solid rgba(244, 63, 94, 0.3)",
+                                display: "flex",
+                                alignItems: "center",
+                                justifyContent: "center",
+                                margin: "0 auto 16px auto"
+                            }}>
+                                <span style={{ fontSize: "24px" }}>⚠️</span>
+                            </div>
+                            <h3 style={{ fontSize: "18px", fontWeight: "750", margin: "0 0 10px 0", color: "#ffffff" }}>
+                                Enterprise Seeding Notice
+                            </h3>
+                            <p style={{ fontSize: "13.5px", color: "var(--muted)", lineHeight: "1.5", margin: "0 0 24px 0" }}>
+                                You are about to launch a workspace pre-seeded with <strong>500 segregated mock records</strong>.
+                                <br /><br />
+                                If this is your <strong>second organization</strong> setup, please launch clean (0 rows) to verify target sync transfers properly!
+                            </p>
+                            <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
+                                <button
+                                    onClick={async () => {
+                                        setShowSeedingWarning(false);
+                                        setShowSeedingWarningApproved(true);
+                                        await executeRegistration(true);
+                                    }}
+                                    className="btn"
+                                    style={{
+                                        width: "100%",
+                                        height: "44px",
+                                        fontSize: "13.5px",
+                                        fontWeight: "700",
+                                        border: "1px solid rgba(244, 63, 94, 0.4)",
+                                        background: "rgba(244, 63, 94, 0.08)",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s ease"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "rgba(244, 63, 94, 0.16)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "rgba(244, 63, 94, 0.08)";
+                                    }}
+                                >
+                                    ⚡ Seed Anyway (Proceed)
+                                </button>
+                                <button
+                                    onClick={async () => {
+                                        setShowSeedingWarning(false);
+                                        setSeedData(false);
+                                        await executeRegistration(false);
+                                    }}
+                                    className="btn"
+                                    style={{
+                                        width: "100%",
+                                        height: "44px",
+                                        fontSize: "13.5px",
+                                        fontWeight: "700",
+                                        border: "1px solid rgba(255, 255, 255, 0.12)",
+                                        background: "rgba(255, 255, 255, 0.05)",
+                                        cursor: "pointer",
+                                        transition: "all 0.2s ease"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                    }}
+                                >
+                                    🧹 Launch Empty (Recommended)
+                                </button>
+                                <button
+                                    onClick={() => setShowSeedingWarning(false)}
+                                    style={{
+                                        width: "100%",
+                                        height: "36px",
+                                        fontSize: "12px",
+                                        color: "var(--muted)",
+                                        background: "transparent",
+                                        border: "none",
+                                        cursor: "pointer",
+                                        marginTop: "4px"
+                                    }}
+                                >
+                                    Cancel & Review
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

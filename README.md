@@ -55,7 +55,6 @@ The platform is designed with enterprise-grade security, featuring JWT-based ses
 - **Rate limiting** on all sensitive endpoints
 - **CSRF protection** and secure headers
 - **Password hashing** with bcrypt (10 rounds)
-- **Master OTP bypass** for development (`777777`)
 
 ### 🏢 **Multi-Tenant Architecture**
 - **Complete data isolation** per organization
@@ -261,9 +260,6 @@ SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
 SMTP_USER=your-email@gmail.com
 SMTP_PASS=your-app-password
-
-# ── Master OTP (Development Only) ───────────────────────────
-MASTER_OTP=777777
 
 # ── Seed Data Custodian Emails ──────────────────────────────
 CUSTODIAN_FINANCE=finance-audit@example.com
@@ -645,11 +641,6 @@ npm run lint
 
 ### **Development Tips**
 
-#### **Master OTP Code**
-Use `777777` to bypass email verification during development:
-```env
-MASTER_OTP=777777
-```
 
 #### **Database Inspection**
 The database schema is auto-created on first run. Check logs for:

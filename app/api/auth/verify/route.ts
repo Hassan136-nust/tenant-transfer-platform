@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { query, seedOrganizationRows } from "../../../lib/db";
 import { signSession } from "../../../lib/auth";
 
-const MASTER_OTP = process.env.MASTER_OTP || "777777";
 
 export async function POST(request: Request) {
     try {
@@ -16,21 +15,15 @@ export async function POST(request: Request) {
         const cleanCode = code.trim();
         let isValid = false;
 
-        // Master OTP bypass for grading / testing
-        if (cleanCode === MASTER_OTP) {
-            console.log(`[OTP Verify] Master OTP used for: ${normalizedEmail}`);
-            isValid = true;
-        } else {
-            const result = await query(
-                `SELECT code, expires_at FROM otp_records WHERE email = $1 AND verified = FALSE`,
-                [normalizedEmail]
-            );
-            if (result.rows.length > 0) {
-                const record = result.rows[0];
-                if (record.code === cleanCode && new Date(record.expires_at) > new Date()) {
-                    isValid = true;
-                    await query(`UPDATE otp_records SET verified = TRUE WHERE email = $1`, [normalizedEmail]);
-                }
+        const result = await query(
+            `SELECT code, expires_at FROM otp_records WHERE email = $1 AND verified = FALSE`,
+            [normalizedEmail]
+        );
+        if (result.rows.length > 0) {
+            const record = result.rows[0];
+            if (record.code === cleanCode && new Date(record.expires_at) > new Date()) {
+                isValid = true;
+                await query(`UPDATE otp_records SET verified = TRUE WHERE email = $1`, [normalizedEmail]);
             }
         }
 

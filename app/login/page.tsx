@@ -331,9 +331,7 @@ export default function LoginPage() {
                     disabled={loading}
                     style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
                   />
-                  <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
-                    🔑 Use master code <code>777777</code> to bypass email during testing.
-                  </span>
+
                 </div>
                 <button className="btn" type="submit" disabled={loading}>
                   {loading ? "Verifying..." : "Verify & Enter Workspace"}

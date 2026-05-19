@@ -4,7 +4,6 @@ import { signSession } from "../../../lib/auth";
 import bcrypt from "bcryptjs";
 import { validateEmail, getValidationErrorMessage } from "../../../lib/zerobounce";
 
-const MASTER_OTP = process.env.MASTER_OTP || "777777";
 
 export async function POST(request: Request) {
     try {
@@ -23,21 +22,16 @@ export async function POST(request: Request) {
 
         // 1. Verify OTP Code
         let isOtpValid = false;
-        if (cleanCode === MASTER_OTP) {
-            console.log(`[Signup API] Master OTP bypass used for email: ${normalizedEmail}`);
-            isOtpValid = true;
-        } else {
-            const result = await query(
-                `SELECT code, expires_at FROM otp_records WHERE email = $1 AND verified = FALSE`,
-                [normalizedEmail]
-            );
-            if (result.rows.length > 0) {
-                const record = result.rows[0];
-                if (record.code === cleanCode && new Date(record.expires_at) > new Date()) {
-                    isOtpValid = true;
-                    // Mark code as verified so it cannot be reused
-                    await query(`UPDATE otp_records SET verified = TRUE WHERE email = $1`, [normalizedEmail]);
-                }
+        const result = await query(
+            `SELECT code, expires_at FROM otp_records WHERE email = $1 AND verified = FALSE`,
+            [normalizedEmail]
+        );
+        if (result.rows.length > 0) {
+            const record = result.rows[0];
+            if (record.code === cleanCode && new Date(record.expires_at) > new Date()) {
+                isOtpValid = true;
+                // Mark code as verified so it cannot be reused
+                await query(`UPDATE otp_records SET verified = TRUE WHERE email = $1`, [normalizedEmail]);
             }
         }
 
