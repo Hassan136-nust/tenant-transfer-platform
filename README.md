@@ -133,7 +133,9 @@ The platform is designed with enterprise-grade security, featuring JWT-based ses
 
 ## 🏗 Architecture
 
-### **Multi-Tenant Data Isolation**
+### **System Architecture Overview**
+
+This platform follows a **serverless, multi-tenant SaaS architecture** with strict data isolation and modern security practices.
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
@@ -163,14 +165,306 @@ The platform is designed with enterprise-grade security, featuring JWT-based ses
 └─────────────────────────────────────────────────────────────┘
 ```
 
+---
+
+## 🎯 Architectural Decisions & Rationale
+
+### **1. Next.js 16 with App Router**
+
+**Choice:** Next.js App Router with React Server Components
+
+**Rationale:**
+- **Server Components** reduce client-side JavaScript bundle size
+- **API Routes** provide serverless backend without separate server
+- **Middleware** enables route protection at the edge
+- **Built-in optimization** for images, fonts, and scripts
+- **Vercel deployment** offers seamless CI/CD and global CDN
+
+**Trade-offs:**
+- ✅ Faster page loads and better SEO
+- ✅ Simplified deployment (single codebase)
+- ⚠️ Learning curve for App Router patterns
+
+---
+
+### **2. Multi-Tenant Architecture with Shared Database**
+
+**Choice:** Single database with `org_id` column for tenant isolation
+
+**Rationale:**
+- **Cost-effective** - One database instance serves all tenants
+- **Simplified maintenance** - Single schema to manage
+- **Cross-tenant features** - Data transfers between organizations
+- **Scalable** - Neon Postgres handles thousands of tenants
+
+**Implementation:**
+```typescript
+// Every query includes org_id filter
+const rows = await query(
+  `SELECT * FROM organization_data WHERE org_id = $1`,
+  [session.orgId]
+);
+```
+
+**Alternative Considered:**
+- **Database-per-tenant** - Rejected due to complexity and cost
+- **Schema-per-tenant** - Rejected due to migration overhead
+
+**Security Measures:**
+- ✅ Middleware verifies JWT before API access
+- ✅ All queries parameterized (SQL injection prevention)
+- ✅ Session includes `orgId` extracted from verified JWT
+- ✅ Database indexes on `org_id` for performance
+
+---
+
+### **3. JWT-Based Session Management**
+
+**Choice:** JWT tokens stored in HttpOnly cookies
+
+**Rationale:**
+- **Stateless authentication** - No server-side session storage
+- **Scalable** - Works across serverless functions
+- **Secure** - HttpOnly prevents XSS attacks
+- **Self-contained** - Token includes user data (email, orgId, orgName)
+
+**Implementation:**
+```typescript
+// Sign JWT with 24-hour expiration
+const token = await signSession({
+  email: user.email,
+  orgId: user.orgId,
+  orgName: user.orgName,
+  role: 'admin'
+});
+
+// Store in HttpOnly cookie
+response.headers.set('Set-Cookie', 
+  `session=${token}; HttpOnly; SameSite=Lax; Secure; Max-Age=86400`
+);
+```
+
+**Alternative Considered:**
+- **Session database** - Rejected due to added complexity
+- **Redis sessions** - Rejected due to infrastructure cost
+
+**Security Measures:**
+- ✅ HttpOnly flag prevents JavaScript access
+- ✅ Secure flag enforces HTTPS in production
+- ✅ SameSite=Lax prevents CSRF attacks
+- ✅ Token blacklisting on logout
+- ✅ 24-hour expiration with automatic renewal
+
+---
+
+### **4. Two-Factor Authentication (Password + OTP)**
+
+**Choice:** Email-based OTP as second factor
+
+**Rationale:**
+- **Enhanced security** - Prevents password-only breaches
+- **User-friendly** - No app installation required
+- **Email verification** - Confirms email ownership
+- **Flexible** - Works with any email provider
+
+**Flow:**
+1. User enters password → Verified against bcrypt hash
+2. OTP generated (6 digits) → Stored in database with 5-min expiry
+3. Email sent via SMTP → User receives code
+4. User enters OTP → Verified and session created
+
+**Alternative Considered:**
+- **SMS OTP** - Rejected due to cost and phone number requirement
+- **TOTP (Google Authenticator)** - Considered for future enhancement
+
+**Security Measures:**
+- ✅ OTP expires after 5 minutes
+- ✅ One-time use (marked as verified after use)
+- ✅ Rate limiting (3 OTP requests per minute)
+- ✅ Master OTP for development only
+
+---
+
+### **5. Google OAuth Integration**
+
+**Choice:** Google Identity Services (GSI) for SSO
+
+**Rationale:**
+- **User convenience** - One-click sign-in for Google users
+- **Email verification** - Google-verified emails are trusted
+- **Security** - Leverages Google's authentication infrastructure
+- **No password storage** - Reduces security liability
+
+**Implementation:**
+```typescript
+// Google Sign-In auto-fills email
+google.accounts.id.initialize({
+  client_id: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  callback: (response) => {
+    const decoded = decodeJwt(response.credential);
+    setEmail(decoded.email); // Pre-fill email field
+  }
+});
+```
+
+**Note:** Password still required for account creation (hybrid approach)
+
+---
+
+### **6. Neon Serverless PostgreSQL**
+
+**Choice:** Neon as database provider
+
+**Rationale:**
+- **Serverless** - Auto-scales with traffic
+- **Cost-effective** - Pay only for usage
+- **Fast cold starts** - Sub-second connection times
+- **Branching** - Database branches for development
+- **Vercel integration** - Seamless deployment
+
+**Connection Pooling:**
+```typescript
+import { Pool } from '@neondatabase/serverless';
+
+export const pool = new Pool({
+  connectionString: process.env.DATABASE_URL
+});
+```
+
+**Alternative Considered:**
+- **Supabase** - Rejected due to vendor lock-in
+- **PlanetScale** - Rejected due to MySQL limitations
+- **AWS RDS** - Rejected due to always-on cost
+
+---
+
+### **7. Email Validation with ZeroBounce**
+
+**Choice:** Real-time email validation before OTP sending
+
+**Rationale:**
+- **Prevent fake emails** - Blocks disposable/invalid addresses
+- **Reduce bounce rate** - Improves email deliverability
+- **Typo detection** - Suggests corrections (e.g., "gmial.com" → "gmail.com")
+- **Spam trap detection** - Protects sender reputation
+
+**Implementation:**
+```typescript
+const result = await validateEmail(email);
+
+if (!['valid', 'catch-all'].includes(result.status)) {
+  return { error: 'Invalid email address' };
+}
+```
+
+**Caching Strategy:**
+- ✅ 1-hour in-memory cache per email
+- ✅ Reduces API calls and improves speed
+- ✅ Cache invalidation on server restart
+
+**Graceful Degradation:**
+- If API key not configured → Validation skipped (development mode)
+- If API fails → Fail-open (allow email to prevent blocking users)
+
+---
+
+### **8. Rate Limiting Strategy**
+
+**Choice:** In-memory rate limiting with configurable presets
+
+**Rationale:**
+- **Prevent abuse** - Blocks brute-force attacks
+- **Resource protection** - Prevents API overload
+- **User experience** - Provides clear retry-after headers
+
+**Implementation:**
+```typescript
+const rateLimit = checkRateLimit(request, RateLimitPresets.AUTH);
+
+if (!rateLimit.success) {
+  return NextResponse.json(
+    { error: 'Too many requests', retryAfter: rateLimit.reset },
+    { status: 429 }
+  );
+}
+```
+
+**Rate Limit Tiers:**
+- **Authentication**: 5 requests/minute (strict)
+- **OTP Generation**: 3 requests/minute (strict)
+- **Data Transfers**: 5 transfers/hour (moderate)
+- **API Reads**: 100 requests/minute (lenient)
+
+**Alternative Considered:**
+- **Redis rate limiting** - Planned for production scale
+- **Cloudflare rate limiting** - Considered for DDoS protection
+
+---
+
+### **9. Data Transfer System Design**
+
+**Choice:** Record cloning with source tracking
+
+**Rationale:**
+- **Data isolation** - Each org owns its copy
+- **Audit trail** - Complete transfer history
+- **Circular prevention** - Detects reverse transfers
+- **Selective transfer** - New records only option
+
+**Implementation:**
+```typescript
+// Clone records with source tracking
+INSERT INTO organization_data (org_id, ..., source_record_id)
+SELECT $1, ..., id FROM organization_data WHERE org_id = $2
+```
+
+**Key Features:**
+- ✅ `source_record_id` links clones to originals
+- ✅ Prevents duplicate transfers (eligibility check)
+- ✅ Reverse transfer warning with countdown
+- ✅ Email notifications to recipients
+
+**Alternative Considered:**
+- **Shared records** - Rejected due to security concerns
+- **Reference-only** - Rejected due to data ownership issues
+
+---
+
+### **10. Client-Side State Management**
+
+**Choice:** React Context API for session management
+
+**Rationale:**
+- **Simple** - No external state library needed
+- **Type-safe** - Full TypeScript support
+- **Server-first** - Session verified on server, cached on client
+- **Lightweight** - Minimal bundle size impact
+
+**Implementation:**
+```typescript
+// Session provider wraps entire app
+<DemoSessionProvider>
+  {children}
+</DemoSessionProvider>
+
+// Components access session
+const { email, orgId, orgName } = useDemoSession();
+```
+
+**Alternative Considered:**
+- **Redux** - Rejected as overkill for simple session state
+- **Zustand** - Considered for future complex state needs
+
+---
+
 ### **Authentication Flow**
 
 ```
 User → Login Page → Email/Password + Google SSO
                          ↓
-                   Verify Password
+                   Verify Password (bcrypt)
                          ↓
-                   Generate OTP
+                   Generate OTP (6 digits)
                          ↓
                    Send Email (SMTP)
                          ↓
@@ -178,12 +472,41 @@ User → Login Page → Email/Password + Google SSO
                          ↓
                    Verify OTP Code
                          ↓
-                   Create JWT Session
+                   Create JWT Session (24h)
                          ↓
                    Set HttpOnly Cookie
                          ↓
                    Redirect to Dashboard
 ```
+
+---
+
+### **Performance Optimizations**
+
+1. **Database Indexing**
+   - `org_id` indexed for fast tenant filtering
+   - `source_record_id` indexed for transfer eligibility checks
+   - Composite indexes for common query patterns
+
+2. **Optimistic UI Updates**
+   - Instant feedback on add/delete operations
+   - Rollback on server error
+   - Reduces perceived latency
+
+3. **Parallel API Calls**
+   - Count and data queries run concurrently
+   - Email validation cached for 1 hour
+   - Transfer eligibility cached per recipient
+
+4. **Client-Side Caching**
+   - Email validation results cached
+   - Transfer eligibility cached
+   - Reduces redundant API calls
+
+5. **Debounced Search**
+   - 220ms delay before search query
+   - Prevents excessive database queries
+   - Smooth user experience
 
 ---
 
