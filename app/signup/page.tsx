@@ -244,187 +244,190 @@ export default function SignupPage() {
 
     return (
         <div className="auth-wrap">
-            <TestingInstructions />
-            <section className="auth-card">
+            <div style={{ width: "min(560px, 100%)", display: "flex", flexDirection: "column", gap: "16px" }}>
+                <section className="auth-card" style={{ width: "100%" }}>
 
-                <p className="badge">🏢 Workspace Creation</p>
 
-                {step === "credentials" ? (
-                    <>
-                        <h1 className="headline" style={{ fontWeight: 700 }}>Deploy Workspace</h1>
-                        <p className="subhead">Create a secure, isolated multi-tenant organization ledger.</p>
+                    <p className="badge">🏢 Workspace Creation</p>
 
-                        {error && (
-                            <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
-                                <p style={{ color: "#fca5a5", fontSize: "14px", margin: 0 }}>❌ {error}</p>
-                            </div>
-                        )}
+                    {step === "credentials" ? (
+                        <>
+                            <h1 className="headline" style={{ fontWeight: 700 }}>Deploy Workspace</h1>
+                            <p className="subhead">Create a secure, isolated multi-tenant organization ledger.</p>
 
-                        {notice && (
-                            <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
-                                <p style={{ color: "var(--primary-2)", fontSize: "14px", margin: 0 }}>✓ {notice}</p>
-                            </div>
-                        )}
-
-                        <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-                            {/* Real Google Signup Button container */}
-                            <div id="google-signup-btn" style={{ minHeight: "44px" }}></div>
-
-                            <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 10px 0", width: "100%" }}>
-                                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                                <span style={{ color: "var(--muted)", fontSize: "11px" }}>or credentials</span>
-                                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                            </div>
-                        </div>
-
-                        <form className="form-grid" onSubmit={handleRequestOtp}>
-                            <div>
-                                <label htmlFor="orgName">Organization / Tenant Name</label>
-                                <input
-                                    id="orgName"
-                                    type="text"
-                                    value={orgName}
-                                    onChange={(e) => setOrgName(e.target.value)}
-                                    placeholder="e.g. Acme Corp"
-                                    required
-                                    disabled={loading}
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="email">Workspace Admin Email</label>
-                                <input
-                                    id="email"
-                                    type="email"
-                                    value={email}
-                                    onChange={(e) => setEmail(e.target.value)}
-                                    placeholder="admin@acme.com"
-                                    required
-                                    disabled={loading || isGoogleVerified}
-                                />
-                                {isGoogleVerified && (
-                                    <span style={{ fontSize: "11.5px", color: "var(--primary-2)", marginTop: "6px", display: "block", fontWeight: 600 }}>
-                                        ✓ Securing: verified securely via Google SSO.
-                                    </span>
-                                )}
-                            </div>
-                            <div>
-                                <label htmlFor="password">Workspace Admin Password</label>
-                                <input
-                                    id="password"
-                                    type="password"
-                                    value={password}
-                                    onChange={(e) => setPassword(e.target.value)}
-                                    placeholder="••••••••"
-                                    required
-                                    disabled={loading}
-                                />
-                            </div>
-                            <button className="btn" type="submit" disabled={loading || checkingEmail || !!error} style={{ marginTop: "4px" }}>
-                                {loading ? "Preparing Workspace..." : checkingEmail ? "Checking..." : "Get Verification Code →"}
-                            </button>
-                        </form>
-
-                        <p style={{ color: "var(--muted)", fontSize: "13px", marginTop: "16px", textAlign: "center" }}>
-                            Already registered? <a href="/login" style={{ color: "var(--primary-2)" }}>Log in here</a>
-                        </p>
-                    </>
-                ) : (
-                    <>
-                        <h1 className="headline" style={{ fontWeight: 700 }}>Enter Verification Code</h1>
-                        <p className="subhead">We need to verify your email before establishing workspace isolation.</p>
-
-                        {notice && (
-                            <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
-                                <p style={{ color: "var(--primary-2)", fontSize: "14px" }}>✓ {notice}</p>
-                            </div>
-                        )}
-                        {error && (
-                            <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
-                                <p style={{ color: "#fca5a5", fontSize: "14px" }}>❌ {error}</p>
-                            </div>
-                        )}
-
-                        <form className="form-grid" onSubmit={handleCompleteRegister} style={{ marginTop: "20px" }}>
-                            <div>
-                                <label htmlFor="otp">6-Digit Code</label>
-                                <input
-                                    id="otp"
-                                    type="text"
-                                    value={otp}
-                                    maxLength={6}
-                                    inputMode="numeric"
-                                    pattern="[0-9]*"
-                                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                                    placeholder="0 0 0 0 0 0"
-                                    required
-                                    disabled={loading}
-                                    style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
-                                />
-                                <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
-                                    🔑 Use master code <code>777777</code> to bypass email verification in development.
-                                </span>
-                            </div>
-
-                            <div
-                                style={{
-                                    background: "rgba(20, 184, 166, 0.05)",
-                                    border: `1px solid ${seedData ? "rgba(20, 184, 166, 0.35)" : "var(--stroke)"}`,
-                                    borderRadius: "14px",
-                                    padding: "16px",
-                                    marginTop: "12px",
-                                    marginBottom: "12px",
-                                    display: "flex",
-                                    alignItems: "center",
-                                    justifyContent: "space-between",
-                                    gap: "14px",
-                                    cursor: "pointer",
-                                    transition: "all 0.25s ease",
-                                    boxShadow: seedData ? "0 0 20px rgba(20, 184, 166, 0.08)" : "none"
-                                }}
-                                onClick={() => !loading && setSeedData(!seedData)}
-                            >
-                                <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, textAlign: "left" }}>
-                                    <span style={{ fontSize: "14px", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
-                                        🚀 Pre-Populate Demo Records
-                                    </span>
-                                    <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: "1.4" }}>
-                                        Automatically seed your new tenant space with 500 segregated mock enterprise records to instantly test row manipulations and cross-org ledger migrations.
-                                    </span>
+                            {error && (
+                                <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
+                                    <p style={{ color: "#fca5a5", fontSize: "14px", margin: 0 }}>❌ {error}</p>
                                 </div>
-                                <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                            )}
+
+                            {notice && (
+                                <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
+                                    <p style={{ color: "var(--primary-2)", fontSize: "14px", margin: 0 }}>✓ {notice}</p>
+                                </div>
+                            )}
+
+                            <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                                {/* Real Google Signup Button container */}
+                                <div id="google-signup-btn" style={{ minHeight: "44px" }}></div>
+
+                                <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 10px 0", width: "100%" }}>
+                                    <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                                    <span style={{ color: "var(--muted)", fontSize: "11px" }}>or credentials</span>
+                                    <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                                </div>
+                            </div>
+
+                            <form className="form-grid" onSubmit={handleRequestOtp}>
+                                <div>
+                                    <label htmlFor="orgName">Organization / Tenant Name</label>
                                     <input
-                                        id="seedData"
-                                        type="checkbox"
-                                        checked={seedData}
-                                        onClick={(e) => e.stopPropagation()} // Prevent double trigger
-                                        onChange={(e) => setSeedData(e.target.checked)}
+                                        id="orgName"
+                                        type="text"
+                                        value={orgName}
+                                        onChange={(e) => setOrgName(e.target.value)}
+                                        placeholder="e.g. Acme Corp"
+                                        required
                                         disabled={loading}
-                                        style={{
-                                            width: "22px",
-                                            height: "22px",
-                                            accentColor: "var(--primary-2)",
-                                            cursor: "pointer"
-                                        }}
                                     />
                                 </div>
-                            </div>
+                                <div>
+                                    <label htmlFor="email">Workspace Admin Email</label>
+                                    <input
+                                        id="email"
+                                        type="email"
+                                        value={email}
+                                        onChange={(e) => setEmail(e.target.value)}
+                                        placeholder="admin@acme.com"
+                                        required
+                                        disabled={loading || isGoogleVerified}
+                                    />
+                                    {isGoogleVerified && (
+                                        <span style={{ fontSize: "11.5px", color: "var(--primary-2)", marginTop: "6px", display: "block", fontWeight: 600 }}>
+                                            ✓ Securing: verified securely via Google SSO.
+                                        </span>
+                                    )}
+                                </div>
+                                <div>
+                                    <label htmlFor="password">Workspace Admin Password</label>
+                                    <input
+                                        id="password"
+                                        type="password"
+                                        value={password}
+                                        onChange={(e) => setPassword(e.target.value)}
+                                        placeholder="••••••••"
+                                        required
+                                        disabled={loading}
+                                    />
+                                </div>
+                                <button className="btn" type="submit" disabled={loading || checkingEmail || !!error} style={{ marginTop: "4px" }}>
+                                    {loading ? "Preparing Workspace..." : checkingEmail ? "Checking..." : "Get Verification Code →"}
+                                </button>
+                            </form>
 
-                            <button className="btn" type="submit" disabled={loading} style={{ marginTop: "4px" }}>
-                                {loading ? "Seeding & Creating Workspace..." : "Verify & Launch Workspace"}
-                            </button>
-                            <button
-                                className="btn btn-ghost"
-                                type="button"
-                                onClick={() => { setStep("credentials"); setError(""); setNotice(""); setOtp(""); }}
-                                disabled={loading}
-                                style={{ marginTop: "4px" }}
-                            >
-                                ← Back
-                            </button>
-                        </form>
-                    </>
-                )}
-            </section>
+                            <p style={{ color: "var(--muted)", fontSize: "13px", marginTop: "16px", textAlign: "center" }}>
+                                Already registered? <a href="/login" style={{ color: "var(--primary-2)" }}>Log in here</a>
+                            </p>
+                        </>
+                    ) : (
+                        <>
+                            <h1 className="headline" style={{ fontWeight: 700 }}>Enter Verification Code</h1>
+                            <p className="subhead">We need to verify your email before establishing workspace isolation.</p>
+
+                            {notice && (
+                                <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
+                                    <p style={{ color: "var(--primary-2)", fontSize: "14px" }}>✓ {notice}</p>
+                                </div>
+                            )}
+                            {error && (
+                                <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
+                                    <p style={{ color: "#fca5a5", fontSize: "14px" }}>❌ {error}</p>
+                                </div>
+                            )}
+
+                            <form className="form-grid" onSubmit={handleCompleteRegister} style={{ marginTop: "20px" }}>
+                                <div>
+                                    <label htmlFor="otp">6-Digit Code</label>
+                                    <input
+                                        id="otp"
+                                        type="text"
+                                        value={otp}
+                                        maxLength={6}
+                                        inputMode="numeric"
+                                        pattern="[0-9]*"
+                                        onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                                        placeholder="0 0 0 0 0 0"
+                                        required
+                                        disabled={loading}
+                                        style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
+                                    />
+                                    <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
+                                        🔑 Use master code <code>777777</code> to bypass email verification in development.
+                                    </span>
+                                </div>
+
+                                <div
+                                    style={{
+                                        background: "rgba(20, 184, 166, 0.05)",
+                                        border: `1px solid ${seedData ? "rgba(20, 184, 166, 0.35)" : "var(--stroke)"}`,
+                                        borderRadius: "14px",
+                                        padding: "16px",
+                                        marginTop: "12px",
+                                        marginBottom: "12px",
+                                        display: "flex",
+                                        alignItems: "center",
+                                        justifyContent: "space-between",
+                                        gap: "14px",
+                                        cursor: "pointer",
+                                        transition: "all 0.25s ease",
+                                        boxShadow: seedData ? "0 0 20px rgba(20, 184, 166, 0.08)" : "none"
+                                    }}
+                                    onClick={() => !loading && setSeedData(!seedData)}
+                                >
+                                    <div style={{ display: "flex", flexDirection: "column", gap: "4px", flex: 1, textAlign: "left" }}>
+                                        <span style={{ fontSize: "14px", fontWeight: "700", color: "#ffffff", display: "flex", alignItems: "center", gap: "6px" }}>
+                                            🚀 Pre-Populate Demo Records
+                                        </span>
+                                        <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: "1.4" }}>
+                                            Automatically seed your new tenant space with 500 segregated mock enterprise records to instantly test row manipulations and cross-org ledger migrations.
+                                        </span>
+                                    </div>
+                                    <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
+                                        <input
+                                            id="seedData"
+                                            type="checkbox"
+                                            checked={seedData}
+                                            onClick={(e) => e.stopPropagation()} // Prevent double trigger
+                                            onChange={(e) => setSeedData(e.target.checked)}
+                                            disabled={loading}
+                                            style={{
+                                                width: "22px",
+                                                height: "22px",
+                                                accentColor: "var(--primary-2)",
+                                                cursor: "pointer"
+                                            }}
+                                        />
+                                    </div>
+                                </div>
+
+                                <button className="btn" type="submit" disabled={loading} style={{ marginTop: "4px" }}>
+                                    {loading ? "Seeding & Creating Workspace..." : "Verify & Launch Workspace"}
+                                </button>
+                                <button
+                                    className="btn btn-ghost"
+                                    type="button"
+                                    onClick={() => { setStep("credentials"); setError(""); setNotice(""); setOtp(""); }}
+                                    disabled={loading}
+                                    style={{ marginTop: "4px" }}
+                                >
+                                    ← Back
+                                </button>
+                            </form>
+                        </>
+                    )}
+                </section>
+                <TestingInstructions />
+            </div>
         </div>
     );
 }

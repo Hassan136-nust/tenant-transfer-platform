@@ -228,149 +228,152 @@ export default function LoginPage() {
 
   return (
     <div className="auth-wrap">
-      <TestingInstructions />
-      <section className="auth-card">
+      <div style={{ width: "min(560px, 100%)", display: "flex", flexDirection: "column", gap: "16px" }}>
+        <section className="auth-card" style={{ width: "100%" }}>
 
-        <p className="badge">🔐 Secure Gateway</p>
 
-        {step === "credentials" ? (
-          <>
-            <h1 className="headline" style={{ fontWeight: 700 }}>Workspace Login</h1>
-            <p className="subhead">Enter your organizational credentials to receive a verification code.</p>
+          <p className="badge">🔐 Secure Gateway</p>
 
-            {error && (
-              <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
-                <p style={{ color: "#fca5a5", fontSize: "14px", margin: 0 }}>❌ {error}</p>
+          {step === "credentials" ? (
+            <>
+              <h1 className="headline" style={{ fontWeight: 700 }}>Workspace Login</h1>
+              <p className="subhead">Enter your organizational credentials to receive a verification code.</p>
+
+              {error && (
+                <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
+                  <p style={{ color: "#fca5a5", fontSize: "14px", margin: 0 }}>❌ {error}</p>
+                </div>
+              )}
+
+              {notice && (
+                <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
+                  <p style={{ color: "var(--primary-2)", fontSize: "14px", margin: 0 }}>✓ {notice}</p>
+                </div>
+              )}
+
+              <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
+                {/* Real Google Official Button container */}
+                <div id="google-signin-btn" style={{ minHeight: "44px" }}></div>
+
+                <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 10px 0", width: "100%" }}>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                  <span style={{ color: "var(--muted)", fontSize: "11px" }}>or credentials</span>
+                  <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
+                </div>
               </div>
-            )}
 
-            {notice && (
-              <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
-                <p style={{ color: "var(--primary-2)", fontSize: "14px", margin: 0 }}>✓ {notice}</p>
+              <form className="form-grid" onSubmit={handleCredentials}>
+                <div>
+                  <label htmlFor="email">Organizational Email</label>
+                  <input
+                    id="email"
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    placeholder={process.env.NEXT_PUBLIC_ALPHA_EMAIL || "alpha@example.com"}
+                    required
+                    disabled={loading || isGoogleVerified}
+                  />
+                  {isGoogleVerified && (
+                    <span style={{ fontSize: "11.5px", color: "var(--primary-2)", marginTop: "6px", display: "block", fontWeight: 600 }}>
+                      ✓ Securing: verified securely via Google SSO.
+                    </span>
+                  )}
+                </div>
+                <div>
+                  <label htmlFor="password">Password</label>
+                  <input
+                    id="password"
+                    type="password"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    placeholder="••••••••"
+                    required
+                    disabled={loading}
+                  />
+                </div>
+                <button className="btn" type="submit" disabled={loading || checkingEmail || !!error} style={{ marginTop: "4px" }}>
+                  {loading ? "Verifying..." : checkingEmail ? "Checking..." : "Continue →"}
+                </button>
+              </form>
+
+              <div style={{ marginTop: "24px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "20px", textAlign: "center" }}>
+                <p style={{ color: "var(--muted)", fontSize: "12.5px", marginBottom: "12px" }}>
+                  Preparing a customized tenant environment?
+                </p>
+                <a
+                  href="/signup"
+                  className="btn btn-ghost"
+                  style={{
+                    display: "block",
+                    fontSize: "13px",
+                    fontWeight: "600",
+                    textDecoration: "none",
+                    color: "#ffffff",
+                    background: "rgba(255,255,255,0.03)",
+                    borderColor: "rgba(255,255,255,0.08)",
+                    borderRadius: "12px",
+                    padding: "12px"
+                  }}
+                >
+                  🏢 Create New Workspace Portal →
+                </a>
               </div>
-            )}
+            </>
+          ) : (
+            <>
+              <h1 className="headline" style={{ fontWeight: 700 }}>Enter Verification Code</h1>
+              <p className="subhead">Check your email for a 6-digit OTP code.</p>
 
-            <div style={{ marginTop: "24px", display: "flex", flexDirection: "column", alignItems: "center" }}>
-              {/* Real Google Official Button container */}
-              <div id="google-signin-btn" style={{ minHeight: "44px" }}></div>
+              {notice && (
+                <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
+                  <p style={{ color: "var(--primary-2)", fontSize: "14px" }}>✓ {notice}</p>
+                </div>
+              )}
+              {error && (
+                <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
+                  <p style={{ color: "#fca5a5", fontSize: "14px" }}>❌ {error}</p>
+                </div>
+              )}
 
-              <div style={{ display: "flex", alignItems: "center", gap: "10px", margin: "18px 0 10px 0", width: "100%" }}>
-                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-                <span style={{ color: "var(--muted)", fontSize: "11px" }}>or credentials</span>
-                <div style={{ flex: 1, height: "1px", background: "rgba(255,255,255,0.06)" }} />
-              </div>
-            </div>
-
-            <form className="form-grid" onSubmit={handleCredentials}>
-              <div>
-                <label htmlFor="email">Organizational Email</label>
-                <input
-                  id="email"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                  placeholder={process.env.NEXT_PUBLIC_ALPHA_EMAIL || "alpha@example.com"}
-                  required
-                  disabled={loading || isGoogleVerified}
-                />
-                {isGoogleVerified && (
-                  <span style={{ fontSize: "11.5px", color: "var(--primary-2)", marginTop: "6px", display: "block", fontWeight: 600 }}>
-                    ✓ Securing: verified securely via Google SSO.
+              <form className="form-grid" onSubmit={handleOtp} style={{ marginTop: "20px" }}>
+                <div>
+                  <label htmlFor="otp">6-Digit Code</label>
+                  <input
+                    id="otp"
+                    type="text"
+                    value={otp}
+                    maxLength={6}
+                    inputMode="numeric"
+                    pattern="[0-9]*"
+                    onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
+                    placeholder="0 0 0 0 0 0"
+                    required
+                    disabled={loading}
+                    style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
+                  />
+                  <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
+                    🔑 Use master code <code>777777</code> to bypass email during testing.
                   </span>
-                )}
-              </div>
-              <div>
-                <label htmlFor="password">Password</label>
-                <input
-                  id="password"
-                  type="password"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  placeholder="••••••••"
-                  required
+                </div>
+                <button className="btn" type="submit" disabled={loading}>
+                  {loading ? "Verifying..." : "Verify & Enter Workspace"}
+                </button>
+                <button
+                  className="btn btn-ghost"
+                  type="button"
+                  onClick={() => { setStep("credentials"); setError(""); setNotice(""); setOtp(""); }}
                   disabled={loading}
-                />
-              </div>
-              <button className="btn" type="submit" disabled={loading || checkingEmail || !!error} style={{ marginTop: "4px" }}>
-                {loading ? "Verifying..." : checkingEmail ? "Checking..." : "Continue →"}
-              </button>
-            </form>
-
-            <div style={{ marginTop: "24px", borderTop: "1px solid rgba(255,255,255,0.06)", paddingTop: "20px", textAlign: "center" }}>
-              <p style={{ color: "var(--muted)", fontSize: "12.5px", marginBottom: "12px" }}>
-                Preparing a customized tenant environment?
-              </p>
-              <a
-                href="/signup"
-                className="btn btn-ghost"
-                style={{
-                  display: "block",
-                  fontSize: "13px",
-                  fontWeight: "600",
-                  textDecoration: "none",
-                  color: "#ffffff",
-                  background: "rgba(255,255,255,0.03)",
-                  borderColor: "rgba(255,255,255,0.08)",
-                  borderRadius: "12px",
-                  padding: "12px"
-                }}
-              >
-                🏢 Create New Workspace Portal →
-              </a>
-            </div>
-          </>
-        ) : (
-          <>
-            <h1 className="headline" style={{ fontWeight: 700 }}>Enter Verification Code</h1>
-            <p className="subhead">Check your email for a 6-digit OTP code.</p>
-
-            {notice && (
-              <div className="notice" style={{ borderColor: "var(--primary-2)", background: "rgba(40,217,188,0.05)", marginTop: "12px" }}>
-                <p style={{ color: "var(--primary-2)", fontSize: "14px" }}>✓ {notice}</p>
-              </div>
-            )}
-            {error && (
-              <div className="notice" style={{ borderColor: "#ef4444", background: "rgba(239,68,68,0.1)", marginTop: "12px" }}>
-                <p style={{ color: "#fca5a5", fontSize: "14px" }}>❌ {error}</p>
-              </div>
-            )}
-
-            <form className="form-grid" onSubmit={handleOtp} style={{ marginTop: "20px" }}>
-              <div>
-                <label htmlFor="otp">6-Digit Code</label>
-                <input
-                  id="otp"
-                  type="text"
-                  value={otp}
-                  maxLength={6}
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))}
-                  placeholder="0 0 0 0 0 0"
-                  required
-                  disabled={loading}
-                  style={{ textAlign: "center", letterSpacing: "0.4em", fontSize: "20px", fontWeight: "bold" }}
-                />
-                <span style={{ fontSize: "11px", color: "var(--muted)", marginTop: "6px", display: "block" }}>
-                  🔑 Use master code <code>777777</code> to bypass email during testing.
-                </span>
-              </div>
-              <button className="btn" type="submit" disabled={loading}>
-                {loading ? "Verifying..." : "Verify & Enter Workspace"}
-              </button>
-              <button
-                className="btn btn-ghost"
-                type="button"
-                onClick={() => { setStep("credentials"); setError(""); setNotice(""); setOtp(""); }}
-                disabled={loading}
-                style={{ marginTop: "4px" }}
-              >
-                ← Back
-              </button>
-            </form>
-          </>
-        )}
-      </section>
+                  style={{ marginTop: "4px" }}
+                >
+                  ← Back
+                </button>
+              </form>
+            </>
+          )}
+        </section>
+        <TestingInstructions />
+      </div>
     </div>
   );
 }

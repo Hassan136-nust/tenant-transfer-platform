@@ -12,38 +12,40 @@ export function TestingInstructions() {
                 type="button"
                 onClick={() => setIsOpen(true)}
                 style={{
-                    position: "fixed",
-                    top: "24px",
-                    right: "24px",
+                    width: "100%",
+                    maxWidth: "560px",
+                    margin: "12px auto 0 auto",
                     background: "rgba(255, 255, 255, 0.03)",
                     backdropFilter: "blur(12px)",
                     border: "1px solid rgba(255, 255, 255, 0.08)",
-                    borderRadius: "12px",
-                    padding: "10px 18px",
+                    borderRadius: "16px",
+                    padding: "16px 24px",
                     color: "#ffffff",
-                    fontSize: "13px",
-                    fontWeight: "650",
+                    fontSize: "14.5px",
+                    fontWeight: "750",
                     display: "flex",
                     alignItems: "center",
-                    gap: "8px",
+                    justifyContent: "center",
+                    gap: "10px",
                     cursor: "pointer",
-                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.25)",
-                    zIndex: 1000,
+                    boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
                     transition: "all 0.25s cubic-bezier(0.4, 0, 0.2, 1)"
                 }}
                 onMouseEnter={(e) => {
-                    e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
+                    e.currentTarget.style.background = "rgba(40, 217, 188, 0.06)";
                     e.currentTarget.style.borderColor = "var(--primary-2)";
-                    e.currentTarget.style.transform = "translateY(-1px)";
+                    e.currentTarget.style.transform = "translateY(-1.5px)";
+                    e.currentTarget.style.boxShadow = "0 10px 25px rgba(20, 184, 166, 0.12)";
                 }}
                 onMouseLeave={(e) => {
                     e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
                     e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
                     e.currentTarget.style.transform = "translateY(0)";
+                    e.currentTarget.style.boxShadow = "0 8px 32px rgba(0, 0, 0, 0.15)";
                 }}
             >
-                <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
-                📋 System Testing Guide
+                <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--primary-2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                📋 System Testing Guide & Protocol
             </button>
 
             {/* Glassmorphic overlay card modal */}
@@ -117,8 +119,9 @@ export function TestingInstructions() {
                         </div>
 
                         <h3 style={{ color: "white", fontSize: "20px", fontWeight: "800", marginTop: 0, marginBottom: "8px", letterSpacing: "-0.01em" }}>
-                            Hello Team Active,
+                            Hello Team Avtive,
                         </h3>
+
 
                         <p className="muted-text" style={{ fontSize: "14.5px", lineHeight: "1.5", marginTop: 0, marginBottom: "24px" }}>
                             Please follow these steps while testing the multi-tenant secure transfer system:
