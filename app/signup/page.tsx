@@ -24,6 +24,7 @@ export default function SignupPage() {
 
     const [isGoogleVerified, setIsGoogleVerified] = useState(false);
     const [checkingEmail, setCheckingEmail] = useState(false);
+    const [showInstructions, setShowInstructions] = useState(false);
 
     // Live zero-latency check to prevent registering duplicates
     useEffect(() => {
@@ -325,9 +326,6 @@ export default function SignupPage() {
                                 </button>
                             </form>
 
-                            <p style={{ color: "var(--muted)", fontSize: "13px", marginTop: "16px", textAlign: "center" }}>
-                                Already registered? <a href="/login" style={{ color: "var(--primary-2)" }}>Log in here</a>
-                            </p>
                         </>
                     ) : (
                         <>
@@ -426,7 +424,87 @@ export default function SignupPage() {
                         </>
                     )}
                 </section>
-                <TestingInstructions />
+                <div style={{
+                    display: "flex",
+                    alignItems: "center",
+                    justifyContent: "space-between",
+                    gap: "12px",
+                    width: "100%",
+                    marginTop: "16px"
+                }}>
+                    <button
+                        type="button"
+                        onClick={() => setShowInstructions(true)}
+                        style={{
+                            flex: 1,
+                            background: "rgba(255, 255, 255, 0.03)",
+                            backdropFilter: "blur(12px)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            borderRadius: "14px",
+                            padding: "14px 20px",
+                            color: "#ffffff",
+                            fontSize: "13.5px",
+                            fontWeight: "700",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            cursor: "pointer",
+                            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+                            transition: "all 0.25s ease"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(40, 217, 188, 0.06)";
+                            e.currentTarget.style.borderColor = "var(--primary-2)";
+                            e.currentTarget.style.transform = "translateY(-1.5px)";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                            e.currentTarget.style.transform = "translateY(0)";
+                        }}
+                    >
+                        <svg xmlns="http://www.w3.org/2000/svg" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--primary-2)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><circle cx="12" cy="12" r="10" /><path d="M12 16v-4" /><path d="M12 8h.01" /></svg>
+                        📋 Testing Guide
+                    </button>
+
+                    <a
+                        href="/login"
+                        style={{
+                            flex: 1,
+                            background: "rgba(255, 255, 255, 0.03)",
+                            backdropFilter: "blur(12px)",
+                            border: "1px solid rgba(255, 255, 255, 0.08)",
+                            borderRadius: "14px",
+                            padding: "14px 20px",
+                            color: "#ffffff",
+                            fontSize: "13.5px",
+                            fontWeight: "700",
+                            height: "48.5px",
+                            display: "flex",
+                            alignItems: "center",
+                            justifyContent: "center",
+                            gap: "8px",
+                            cursor: "pointer",
+                            textDecoration: "none",
+                            boxShadow: "0 8px 32px rgba(0, 0, 0, 0.15)",
+                            transition: "all 0.25s ease"
+                        }}
+                        onMouseEnter={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.07)";
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.16)";
+                            e.currentTarget.style.transform = "translateY(-1.5px)";
+                        }}
+                        onMouseLeave={(e) => {
+                            e.currentTarget.style.background = "rgba(255, 255, 255, 0.03)";
+                            e.currentTarget.style.borderColor = "rgba(255, 255, 255, 0.08)";
+                            e.currentTarget.style.transform = "translateY(0)";
+                        }}
+                    >
+                        🔐 Login to Workspace
+                    </a>
+                </div>
+                <TestingInstructions isOpen={showInstructions} onClose={() => setShowInstructions(false)} />
             </div>
         </div>
     );
