@@ -392,7 +392,7 @@ if (!rateLimit.success) {
 **Rate Limit Tiers:**
 - **Authentication**: 5 requests/minute (strict)
 - **OTP Generation**: 3 requests/minute (strict)
-- **Data Transfers**: 5 transfers/hour (moderate)
+- **Data Transfers**: 8 transfers/hour (moderate)
 - **API Reads**: 100 requests/minute (lenient)
 
 **Alternative Considered:**
