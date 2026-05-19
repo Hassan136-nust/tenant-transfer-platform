@@ -174,26 +174,15 @@ export async function POST(request: Request) {
             `[Transfer API] ⚡ LIGHTNING FAST: Org ${session.orgId} transferred ${rowCount} records to Org ${recipientOrgId} in ${duration}ms (${Math.round(rowCount / (duration / 1000))} records/sec)`
         );
 
-        // 7. Dispatch Rich Notification Email Alert to Recipient Org (non-blocking background promise keeps UI latency at 0ms!)
-        const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode, session.email);
-        sendEmail({
-            to: recipientEmail,
-            subject: emailTemplate.subject,
-            text: emailTemplate.text,
-            html: emailTemplate.html,
-            fromName: `${session.orgName} via Platform`,
-            replyTo: session.email,
-        }).then(() => {
-            console.log(`[Transfer API] 📧 Dynamic SMTP notification delivered to ${recipientEmail}`);
-        }).catch((emailErr: any) => {
-            console.warn(`[Transfer API] ⚠️ SMTP notification failed: ${emailErr.message}`);
-        });
-
+        // Return immediately to keep UI cloning latency extremely low!
         return NextResponse.json({
             success: true,
             senderOrgName: session.orgName,
             recipientOrgName: recipient.name,
+            recipientOrgId,
             rowCount,
+            transferMode,
+            messageText: cleanMessage,
             duration: `${duration}ms`,
             throughput: `${Math.round(rowCount / (duration / 1000))} records/sec`,
             message: `⚡ Lightning transfer complete! ${rowCount} records migrated to ${recipient.name} in ${duration}ms.`,

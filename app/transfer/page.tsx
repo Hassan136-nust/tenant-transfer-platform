@@ -192,6 +192,23 @@ export default function TransferPage() {
         setSelectedRecipient("");
         // Refresh local count as there are no modifications, but good for sync consistency
         await loadRowCount();
+
+        // 🌟 Trigger Async Browserside Background Email Dispatch - 0ms perceived latency for user!
+        fetch("/api/transfer/email", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            recipientOrgId: data.recipientOrgId || selectedRecipient,
+            message: data.messageText || message.trim(),
+            rowCount: data.rowCount,
+            transferMode: data.transferMode || transferMode
+          })
+        }).then((emailRes) => {
+          if (!emailRes.ok) console.warn("[Transfer Page] Background email dispatch returned non-200 state");
+          else console.log("[Transfer Page] Background email dispatch successfully triggered");
+        }).catch((err) => {
+          console.error("[Transfer Page] Failed to trigger background email dispatch:", err);
+        });
       } else {
         setError(data.error || "Transfer transaction rejected by server pooler.");
       }
