@@ -987,35 +987,6 @@ clearRateLimit('127.0.0.1');
 
 ---
 
-## 🚀 Production Deployment
-
-### **Vercel Deployment** (Recommended)
-
-1. **Push to GitHub**
-```bash
-git push origin main
-```
-
-2. **Import to Vercel**
-- Go to [vercel.com](https://vercel.com)
-- Click "Import Project"
-- Select your repository
-
-3. **Configure Environment Variables**
-Add all variables from `.env.local` in Vercel dashboard
-
-4. **Deploy**
-Vercel automatically builds and deploys on every push
-
-### **Environment-Specific Settings**
-
-#### **Production**
-- Set `NODE_ENV=production`
-- Enable `Secure` flag on cookies (HTTPS only)
-- Use production database (not development)
-- Configure real SMTP credentials
-- Set strong `JWT_SECRET` (32+ characters)
-
 #### **Security Checklist**
 - ✅ HTTPS enabled (SSL certificate)
 - ✅ Environment variables secured
