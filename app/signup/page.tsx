@@ -213,6 +213,17 @@ export default function SignupPage() {
         setError("");
         setLoading(true);
 
+        if (seedData) {
+            const confirmSeed = window.confirm(
+                "Are you sure you want to seed this workspace with 500 records?\n\nIf this is your second organization/account, please click 'Cancel' to keep the records at 0 for accurate cross-tenant testing. Otherwise, it is your choice to click 'OK' to proceed anyway."
+            );
+            if (!confirmSeed) {
+                setSeedData(false);
+                setLoading(false);
+                return;
+            }
+        }
+
         try {
             const res = await fetch("/api/auth/signup", {
                 method: "POST",
@@ -366,8 +377,8 @@ export default function SignupPage() {
 
                                 <div
                                     style={{
-                                        background: "rgba(20, 184, 166, 0.05)",
-                                        border: `1px solid ${seedData ? "rgba(20, 184, 166, 0.35)" : "var(--stroke)"}`,
+                                        background: seedData ? "rgba(244, 63, 94, 0.06)" : "rgba(255, 255, 255, 0.01)",
+                                        border: `1px solid ${seedData ? "rgba(244, 63, 94, 0.38)" : "var(--stroke)"}`,
                                         borderRadius: "14px",
                                         padding: "16px",
                                         marginTop: "12px",
@@ -378,7 +389,7 @@ export default function SignupPage() {
                                         gap: "14px",
                                         cursor: "pointer",
                                         transition: "all 0.25s ease",
-                                        boxShadow: seedData ? "0 0 20px rgba(20, 184, 166, 0.08)" : "none"
+                                        boxShadow: seedData ? "0 0 24px rgba(244, 63, 94, 0.12)" : "none"
                                     }}
                                     onClick={() => !loading && setSeedData(!seedData)}
                                 >
@@ -388,6 +399,9 @@ export default function SignupPage() {
                                         </span>
                                         <span style={{ fontSize: "12px", color: "var(--muted)", lineHeight: "1.4" }}>
                                             Automatically seed your new tenant space with 500 segregated mock enterprise records to instantly test row manipulations and cross-org ledger migrations.
+                                        </span>
+                                        <span style={{ fontSize: "11px", color: "#fca5a5", background: "rgba(244, 63, 94, 0.15)", border: "1px solid rgba(244, 63, 94, 0.3)", borderRadius: "6px", padding: "4px 8px", marginTop: "6px", display: "inline-block", fontWeight: "600", width: "fit-content" }}>
+                                            ⚠️ Warning: Keep unseeded for your 2nd account setup!
                                         </span>
                                     </div>
                                     <div style={{ position: "relative", display: "flex", alignItems: "center" }}>
@@ -401,7 +415,7 @@ export default function SignupPage() {
                                             style={{
                                                 width: "22px",
                                                 height: "22px",
-                                                accentColor: "var(--primary-2)",
+                                                accentColor: "#f43f5e",
                                                 cursor: "pointer"
                                             }}
                                         />
