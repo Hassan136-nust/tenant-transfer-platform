@@ -576,6 +576,7 @@ export default function SignupPage() {
                                         fontWeight: "700",
                                         border: "1px solid rgba(244, 63, 94, 0.4)",
                                         background: "rgba(244, 63, 94, 0.08)",
+                                        color: "#ffffff",
                                         cursor: "pointer",
                                         transition: "all 0.2s ease"
                                     }}
@@ -600,16 +601,17 @@ export default function SignupPage() {
                                         height: "44px",
                                         fontSize: "13.5px",
                                         fontWeight: "700",
-                                        border: "1px solid rgba(255, 255, 255, 0.12)",
-                                        background: "rgba(255, 255, 255, 0.05)",
+                                        border: "1px solid rgba(255, 255, 255, 0.15)",
+                                        background: "rgba(255, 255, 255, 0.09)",
+                                        color: "#ffffff",
                                         cursor: "pointer",
                                         transition: "all 0.2s ease"
                                     }}
                                     onMouseEnter={(e) => {
-                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.1)";
+                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.15)";
                                     }}
                                     onMouseLeave={(e) => {
-                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.05)";
+                                        e.currentTarget.style.background = "rgba(255, 255, 255, 0.09)";
                                     }}
                                 >
                                     🧹 Launch Empty (Recommended)
@@ -619,12 +621,18 @@ export default function SignupPage() {
                                     style={{
                                         width: "100%",
                                         height: "36px",
-                                        fontSize: "12px",
-                                        color: "var(--muted)",
+                                        fontSize: "12.5px",
+                                        color: "#cbd5e1",
                                         background: "transparent",
                                         border: "none",
                                         cursor: "pointer",
                                         marginTop: "4px"
+                                    }}
+                                    onMouseEnter={(e) => {
+                                        e.currentTarget.style.color = "#ffffff";
+                                    }}
+                                    onMouseLeave={(e) => {
+                                        e.currentTarget.style.color = "#cbd5e1";
                                     }}
                                 >
                                     Cancel & Review
