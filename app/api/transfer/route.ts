@@ -178,7 +178,7 @@ export async function POST(request: Request) {
         // Fire and forget - don't wait for email to complete
         setImmediate(async () => {
             try {
-                const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount);
+                const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode);
                 const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
                 const senderEmail = session.orgId === alphaOrgId
                     ? (process.env.ALPHA_EMAIL || "alpha@example.com")

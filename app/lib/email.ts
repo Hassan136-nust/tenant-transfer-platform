@@ -5,74 +5,74 @@ import nodemailer from "nodemailer";
  * Connects to a live SMTP server (e.g. Gmail, SendGrid, Outlook) to send actual emails.
  */
 export async function sendEmail({
+  to,
+  subject,
+  html,
+  text,
+  fromName,
+  replyTo,
+}: {
+  to: string;
+  subject: string;
+  html: string;
+  text: string;
+  fromName?: string;  // Display name shown as sender, e.g. "Organization Alpha"
+  replyTo?: string;   // Sender org's real email shown in reply-to header
+}) {
+  const host = process.env.SMTP_HOST;
+  const port = parseInt(process.env.SMTP_PORT || "587", 10);
+  const user = process.env.SMTP_USER;
+  const pass = process.env.SMTP_PASS;
+
+  // Enforce real email requirement
+  if (!host || !user || !pass) {
+    console.error("[Email Broker] FATAL: Real SMTP credentials missing from .env.local!");
+    throw new Error("SMTP Configurations required in .env.local to send real emails.");
+  }
+
+  // Create transporter pointing to real mail servers
+  const transporter = nodemailer.createTransport({
+    host,
+    port,
+    secure: port === 465, // true for port 465, false for 587
+    auth: {
+      user,
+      pass,
+    },
+  });
+
+  // Verify the connection configuration
+  try {
+    await transporter.verify();
+    console.log("[Email Broker] SMTP Connection verified. Transmitting email to live network...");
+  } catch (error) {
+    console.error("[Email Broker] Failed to connect to real SMTP server:", error);
+    throw new Error("Failed to connect to SMTP server. Check credentials.");
+  }
+
+  // Dispatch the email — FROM display name reflects the sending organization
+  const displayName = fromName || "Secure Data Portal";
+  const info = await transporter.sendMail({
+    from: `"${displayName}" <${user}>`,
     to,
     subject,
-    html,
     text,
-    fromName,
-    replyTo,
-}: {
-    to: string;
-    subject: string;
-    html: string;
-    text: string;
-    fromName?: string;  // Display name shown as sender, e.g. "Organization Alpha"
-    replyTo?: string;   // Sender org's real email shown in reply-to header
-}) {
-    const host = process.env.SMTP_HOST;
-    const port = parseInt(process.env.SMTP_PORT || "587", 10);
-    const user = process.env.SMTP_USER;
-    const pass = process.env.SMTP_PASS;
+    html,
+    ...(replyTo ? { replyTo } : {}),
+  });
 
-    // Enforce real email requirement
-    if (!host || !user || !pass) {
-        console.error("[Email Broker] FATAL: Real SMTP credentials missing from .env.local!");
-        throw new Error("SMTP Configurations required in .env.local to send real emails.");
-    }
-
-    // Create transporter pointing to real mail servers
-    const transporter = nodemailer.createTransport({
-        host,
-        port,
-        secure: port === 465, // true for port 465, false for 587
-        auth: {
-            user,
-            pass,
-        },
-    });
-
-    // Verify the connection configuration
-    try {
-        await transporter.verify();
-        console.log("[Email Broker] SMTP Connection verified. Transmitting email to live network...");
-    } catch (error) {
-        console.error("[Email Broker] Failed to connect to real SMTP server:", error);
-        throw new Error("Failed to connect to SMTP server. Check credentials.");
-    }
-
-    // Dispatch the email — FROM display name reflects the sending organization
-    const displayName = fromName || "Secure Data Portal";
-    const info = await transporter.sendMail({
-        from: `"${displayName}" <${user}>`,
-        to,
-        subject,
-        text,
-        html,
-        ...(replyTo ? { replyTo } : {}),
-    });
-
-    console.log(`[Email Broker] ✅ Real email delivered to ${to} from "${displayName}" (messageId: ${info.messageId})`);
-    return true;
+  console.log(`[Email Broker] ✅ Real email delivered to ${to} from "${displayName}" (messageId: ${info.messageId})`);
+  return true;
 }
 
 /**
  * Renders an enterprise-grade verification OTP template
  */
 export function getOTPEmailTemplate(code: string) {
-    return {
-        subject: "🔐 Secure Login Verification Code",
-        text: `Your Secure Workspace verification code is: ${code}. This code expires in 5 minutes.`,
-        html: `
+  return {
+    subject: "🔐 Secure Login Verification Code",
+    text: `Your Secure Workspace verification code is: ${code}. This code expires in 5 minutes.`,
+    html: `
       <div style="font-family: sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
         <div style="border-bottom: 2px solid #657cff; padding-bottom: 12px; margin-bottom: 20px;">
           <h2 style="margin: 0; color: #0f172a; font-size: 22px;">Secure Data Portal</h2>
@@ -87,17 +87,19 @@ export function getOTPEmailTemplate(code: string) {
         <small style="color: #94a3b8; display: block; text-align: center;">Secure Data Portal Corp. Inc. • Automated System Dispatch</small>
       </div>
     `,
-    };
+  };
 }
 
 /**
  * Renders a data transfer event alert template
  */
-export function getTransferEmailTemplate(senderName: string, message: string, rowCount: number) {
-    return {
-        subject: `🚨 Data Transfer Alert: ${senderName}`,
-        text: `Your organization received a data transfer of ${rowCount} rows from ${senderName} with message: "${message}".`,
-        html: `
+export function getTransferEmailTemplate(senderName: string, message: string, rowCount: number, transferMode?: string) {
+  const isNewOnly = transferMode === "new_only";
+  const modeText = isNewOnly ? "Selective (New Original Records Only)" : "Complete (Whole Data Pool)";
+  return {
+    subject: `🚨 Data Transfer Alert: ${senderName} (${isNewOnly ? 'Selective' : 'Complete'})`,
+    text: `Your organization received a data transfer of ${rowCount} rows from ${senderName} using "${modeText}" transfer mode with message: "${message}".`,
+    html: `
       <div style="font-family: sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
         <div style="border-bottom: 2px solid #28d9bc; padding-bottom: 12px; margin-bottom: 20px;">
           <h2 style="margin: 0; color: #0f172a; font-size: 22px;">Multi-Tenant Migration Ledger</h2>
@@ -108,6 +110,7 @@ export function getTransferEmailTemplate(senderName: string, message: string, ro
           <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #14532d; line-height: 1.6;">
             <li><strong>Source Owner:</strong> ${senderName}</li>
             <li><strong>Clones Created:</strong> ${rowCount} rows</li>
+            <li><strong>Transfer Mode:</strong> ${modeText}</li>
             <li><strong>Isolated Tenant Status:</strong> Linked & Active</li>
           </ul>
         </div>
@@ -120,7 +123,7 @@ export function getTransferEmailTemplate(senderName: string, message: string, ro
         <small style="color: #94a3b8; display: block; text-align: center;">Secure Data Portal Corp. Inc. • Automated System Dispatch</small>
       </div>
     `,
-    };
+  };
 }
 
 // Cache invalidation tick - Next.js turbopack got stuck on old file handle!
