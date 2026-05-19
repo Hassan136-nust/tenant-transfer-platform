@@ -115,27 +115,14 @@ export async function POST(request: Request) {
             };
         }
 
-        // ⚡ STEP 3: Generate JWT session token
-        const sessionToken = await signSession({
-            email: normalizedEmail,
-            orgId: userMatch.orgId,
-            orgName: userMatch.orgName,
-            role: "admin"
-        });
-
-        // ⚡ STEP 4: Build response with secure cookie
+        // ⚡ STEP 4: Build response without setting secure session cookie (done after OTP verification in verify/route.ts)
         const response = NextResponse.json({
             success: true,
             email: normalizedEmail,
             orgId: userMatch.orgId,
             orgName: userMatch.orgName,
-            message: `Successfully authenticated into ${userMatch.orgName}.`,
+            message: `Credentials verified. OTP required to complete authentication.`,
         });
-
-        const cookieString = `session=${sessionToken}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${24 * 60 * 60}; ${process.env.NODE_ENV === "production" ? "Secure;" : ""
-            }`;
-
-        response.headers.set("Set-Cookie", cookieString);
 
         const duration = Date.now() - startTime;
         console.log(`[Login] ⚡ Authenticated ${normalizedEmail} in ${duration}ms`);
