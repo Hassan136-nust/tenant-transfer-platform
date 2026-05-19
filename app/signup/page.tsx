@@ -3,6 +3,8 @@
 import { useRouter } from "next/navigation";
 import { FormEvent, useState, useEffect } from "react";
 import { useDemoSession } from "../components/demo-session-provider";
+import { TestingInstructions } from "../components/testing-instructions";
+
 
 type Step = "credentials" | "otp";
 
@@ -242,7 +244,9 @@ export default function SignupPage() {
 
     return (
         <div className="auth-wrap">
+            <TestingInstructions />
             <section className="auth-card">
+
                 <p className="badge">🏢 Workspace Creation</p>
 
                 {step === "credentials" ? (
