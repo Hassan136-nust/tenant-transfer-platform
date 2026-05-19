@@ -56,7 +56,7 @@ The platform is designed with enterprise-grade security, featuring JWT-based ses
 - **CSRF protection** and secure headers
 - **Password hashing** with bcrypt (10 rounds)
 
-### 🏢 **Multi-Tenant Architecture**
+### 🏢 **Multi-Tenant-Architecture**
 - **Complete data isolation** per organization
 - **Dynamic organization creation** during signup
 - **Automatic workspace provisioning** with optional seed data (500 records)
