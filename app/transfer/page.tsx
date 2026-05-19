@@ -430,22 +430,41 @@ export default function TransferPage() {
             </div>
 
             {selectedRecipient && !checkingEligibility && effectivePendingCount === 0 && (
-              <div style={{
-                background: "rgba(244, 63, 94, 0.03)",
-                border: "1px solid rgba(244, 63, 94, 0.15)",
-                borderLeft: "4px solid #f43f5e",
-                borderRadius: "12px",
-                padding: "16px 20px",
-                fontSize: "13.5px",
-                color: "#fda4af",
-                lineHeight: 1.5,
-                display: "flex",
-                flexDirection: "column",
-                gap: "4px"
-              }}>
-                <strong style={{ color: "#ffffff", fontSize: "14.5px" }}>⚠️ Data Already Transferred</strong>
-                No duplicate transfers are allowed. Your current database ledger is already fully synced with <strong>{recipientOrgName}</strong>. This transfer transaction is locked until new records are populated or existing records are updated in your workspace.
-              </div>
+              hasReceivedFromRecipient ? (
+                <div className="notice" style={{
+                  borderLeft: "4px solid #fbbf24",
+                  borderColor: "rgba(251, 191, 36, 0.15)",
+                  background: "rgba(8, 12, 28, 0.45)",
+                  marginTop: 0,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "6px"
+                }}>
+                  <strong style={{ color: "#fbbf24", fontSize: "14.5px", display: "flex", alignItems: "center", gap: "6px" }}>
+                    ⚠️ Workspace Data Loop Alert
+                  </strong>
+                  <span style={{ fontSize: "13.5px", color: "var(--text)", lineHeight: 1.5 }}>
+                    You previously received data from <strong>{recipientOrgName}</strong>. Your active workspace ledger remains unchanged since the import. Direct synchronization of duplicate structures is locked by default.
+                  </span>
+                </div>
+              ) : (
+                <div style={{
+                  background: "rgba(244, 63, 94, 0.03)",
+                  border: "1px solid rgba(244, 63, 94, 0.15)",
+                  borderLeft: "4px solid #f43f5e",
+                  borderRadius: "12px",
+                  padding: "16px 20px",
+                  fontSize: "13.5px",
+                  color: "#fda4af",
+                  lineHeight: 1.5,
+                  display: "flex",
+                  flexDirection: "column",
+                  gap: "4px"
+                }}>
+                  <strong style={{ color: "#ffffff", fontSize: "14.5px" }}>⚠️ Data Already Transferred</strong>
+                  No duplicate transfers are allowed. Your current database ledger is already fully synced with <strong>{recipientOrgName}</strong>. This transfer transaction is locked until new records are populated or existing records are updated in your workspace.
+                </div>
+              )
             )}
 
             {selectedRecipient && !checkingEligibility && pendingTransferCount !== null && effectivePendingCount > 0 && (
