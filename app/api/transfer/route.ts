@@ -189,8 +189,8 @@ export async function POST(request: Request) {
                     subject: emailTemplate.subject,
                     text: emailTemplate.text,
                     html: emailTemplate.html,
-                    fromName: session.orgName,
-                    replyTo: senderEmail,
+                    fromName: `${session.orgName} (via ${session.email})`,
+                    replyTo: session.email,
                 });
                 console.log(`[Transfer API] 📧 Email dispatched to ${recipientEmail}`);
             } catch (emailErr: any) {
