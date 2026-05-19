@@ -33,6 +33,7 @@ export default function TransferPage() {
 
   const targetOrg = organizations.find((o) => o.id === selectedRecipient);
   const recipientOrgName = targetOrg ? targetOrg.name : 'Choose target workspace';
+  const effectivePendingCount = hasReceivedFromRecipient ? newRowsCount : (pendingTransferCount ?? 0);
 
   // Auto-protect routes
   useEffect(() => {
@@ -293,7 +294,7 @@ export default function TransferPage() {
                 onChange={(e) => setMessage(e.target.value)}
                 placeholder="Provide context or instructions to attach to this data ledger transfer (e.g. 'Migrating Q1 Consolidated ledgers for review')...."
                 required
-                disabled={actionLoading || rowCount === null || rowCount === 0 || !selectedRecipient || pendingTransferCount === 0}
+                disabled={actionLoading || rowCount === null || rowCount === 0 || !selectedRecipient || effectivePendingCount === 0}
                 style={{
                   height: "120px",
                   padding: "16px",
@@ -319,7 +320,7 @@ export default function TransferPage() {
                 checkingEligibility ||
                 rowCount === null ||
                 rowCount === 0 ||
-                pendingTransferCount === 0 ||
+                effectivePendingCount === 0 ||
                 !message.trim() ||
                 !selectedRecipient
               }
@@ -327,24 +328,24 @@ export default function TransferPage() {
                 height: "52px",
                 fontSize: "15px",
                 marginTop: "8px",
-                boxShadow: pendingTransferCount === 0
+                boxShadow: effectivePendingCount === 0
                   ? "none"
                   : "0 6px 20px rgba(20, 184, 166, 0.2)",
-                background: pendingTransferCount === 0
+                background: effectivePendingCount === 0
                   ? "rgba(255, 255, 255, 0.05)"
                   : undefined,
-                color: pendingTransferCount === 0
+                color: effectivePendingCount === 0
                   ? "rgba(255,255,255,0.3)"
                   : undefined,
-                border: pendingTransferCount === 0
+                border: effectivePendingCount === 0
                   ? "1px solid rgba(255,255,255,0.05)"
                   : undefined,
-                cursor: pendingTransferCount === 0 ? "not-allowed" : "pointer"
+                cursor: effectivePendingCount === 0 ? "not-allowed" : "pointer"
               }}
             >
               {actionLoading
                 ? "Executing Cloning Transaction..."
-                : pendingTransferCount === 0
+                : effectivePendingCount === 0
                   ? "🔒 Duplicate Transfer Suspended"
                   : "🚀 Authenticate and Transfer Data"}
             </button>
@@ -386,7 +387,7 @@ export default function TransferPage() {
                     <strong style={{
                       color: checkingEligibility
                         ? "var(--muted)"
-                        : pendingTransferCount === 0
+                        : effectivePendingCount === 0
                           ? "#f43f5e"
                           : "var(--primary-2)",
                       fontSize: "14px"
@@ -394,7 +395,9 @@ export default function TransferPage() {
                       {checkingEligibility
                         ? "Evaluating..."
                         : pendingTransferCount !== null
-                          ? `${pendingTransferCount.toLocaleString()} new records`
+                          ? hasReceivedFromRecipient
+                            ? `${newRowsCount.toLocaleString()} new record${newRowsCount === 1 ? '' : 's'}${pendingTransferCount > newRowsCount ? ` (${(pendingTransferCount - newRowsCount).toLocaleString()} duplicate${(pendingTransferCount - newRowsCount) === 1 ? '' : 's'} ignored)` : ''}`
+                            : `${pendingTransferCount.toLocaleString()} new record${pendingTransferCount === 1 ? '' : 's'}`
                           : "Unknown"}
                     </strong>
                   </div>
@@ -415,7 +418,7 @@ export default function TransferPage() {
               </div>
             </div>
 
-            {selectedRecipient && !checkingEligibility && pendingTransferCount === 0 && (
+            {selectedRecipient && !checkingEligibility && effectivePendingCount === 0 && (
               <div style={{
                 background: "rgba(244, 63, 94, 0.03)",
                 border: "1px solid rgba(244, 63, 94, 0.15)",
@@ -434,7 +437,7 @@ export default function TransferPage() {
               </div>
             )}
 
-            {selectedRecipient && !checkingEligibility && pendingTransferCount !== null && pendingTransferCount > 0 && (
+            {selectedRecipient && !checkingEligibility && pendingTransferCount !== null && effectivePendingCount > 0 && (
               <div style={{
                 background: "rgba(20, 184, 166, 0.03)",
                 border: "1px solid rgba(20, 184, 166, 0.12)",
@@ -449,7 +452,7 @@ export default function TransferPage() {
                 gap: "4px"
               }}>
                 <strong style={{ color: "#ffffff", fontSize: "14.5px" }}>✨ Ready for Ledger Import</strong>
-                Detected <strong>{pendingTransferCount} pending record(s)</strong> that have not yet been synchronized with <strong>{recipientOrgName}</strong>. Proceeding will migrate only these matching segments transactionally.
+                Detected <strong>{effectivePendingCount} pending record(s)</strong> that have not yet been synchronized with <strong>{recipientOrgName}</strong>. Proceeding will migrate only these matching segments transactionally.
               </div>
             )}
           </div>
