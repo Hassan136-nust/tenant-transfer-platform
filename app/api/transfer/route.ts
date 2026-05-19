@@ -174,29 +174,21 @@ export async function POST(request: Request) {
             `[Transfer API] ⚡ LIGHTNING FAST: Org ${session.orgId} transferred ${rowCount} records to Org ${recipientOrgId} in ${duration}ms (${Math.round(rowCount / (duration / 1000))} records/sec)`
         );
 
-        // 7. Dispatch Rich Notification Email Alert to Recipient Org (non-blocking, async)
-        // Fire and forget - don't wait for email to complete
-        setImmediate(async () => {
-            try {
-                const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode, session.email);
-                const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
-                const senderEmail = session.orgId === alphaOrgId
-                    ? (process.env.ALPHA_EMAIL || "alpha@example.com")
-                    : (process.env.BETA_EMAIL || "beta@example.com");
-
-                await sendEmail({
-                    to: recipientEmail,
-                    subject: emailTemplate.subject,
-                    text: emailTemplate.text,
-                    html: emailTemplate.html,
-                    fromName: `${session.orgName} via Platform`,
-                    replyTo: session.email,
-                });
-                console.log(`[Transfer API] 📧 Email dispatched to ${recipientEmail}`);
-            } catch (emailErr: any) {
-                console.warn(`[Transfer API] ⚠️ Email notification failed: ${emailErr.message}`);
-            }
-        });
+        // 7. Dispatch Rich Notification Email Alert to Recipient Org (awaited to prevent serverless freezing)
+        try {
+            const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode, session.email);
+            await sendEmail({
+                to: recipientEmail,
+                subject: emailTemplate.subject,
+                text: emailTemplate.text,
+                html: emailTemplate.html,
+                fromName: `${session.orgName} via Platform`,
+                replyTo: session.email,
+            });
+            console.log(`[Transfer API] 📧 Email dispatched successfully to ${recipientEmail}`);
+        } catch (emailErr: any) {
+            console.warn(`[Transfer API] ⚠️ Email notification failed: ${emailErr.message}`);
+        }
 
         return NextResponse.json({
             success: true,
