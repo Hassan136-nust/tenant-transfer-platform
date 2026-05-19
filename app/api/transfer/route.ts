@@ -178,7 +178,7 @@ export async function POST(request: Request) {
         // Fire and forget - don't wait for email to complete
         setImmediate(async () => {
             try {
-                const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode);
+                const emailTemplate = getTransferEmailTemplate(session.orgName, cleanMessage, rowCount, transferMode, session.email);
                 const alphaOrgId = process.env.ALPHA_ORG_ID || "org-a";
                 const senderEmail = session.orgId === alphaOrgId
                     ? (process.env.ALPHA_EMAIL || "alpha@example.com")
@@ -189,7 +189,7 @@ export async function POST(request: Request) {
                     subject: emailTemplate.subject,
                     text: emailTemplate.text,
                     html: emailTemplate.html,
-                    fromName: `${session.orgName} (via ${session.email})`,
+                    fromName: `${session.orgName} via Platform`,
                     replyTo: session.email,
                 });
                 console.log(`[Transfer API] 📧 Email dispatched to ${recipientEmail}`);

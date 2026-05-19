@@ -93,12 +93,12 @@ export function getOTPEmailTemplate(code: string) {
 /**
  * Renders a data transfer event alert template
  */
-export function getTransferEmailTemplate(senderName: string, message: string, rowCount: number, transferMode?: string) {
+export function getTransferEmailTemplate(senderName: string, message: string, rowCount: number, transferMode?: string, senderEmail?: string) {
   const isNewOnly = transferMode === "new_only";
   const modeText = isNewOnly ? "Selective (New Original Records Only)" : "Complete (Whole Data Pool)";
   return {
     subject: `🚨 Data Transfer Alert: ${senderName} (${isNewOnly ? 'Selective' : 'Complete'})`,
-    text: `Your organization received a data transfer of ${rowCount} rows from ${senderName} using "${modeText}" transfer mode with message: "${message}".`,
+    text: `Your organization received a data transfer of ${rowCount} rows from ${senderName} (${senderEmail || ''}) using "${modeText}" transfer mode with message: "${message}".`,
     html: `
       <div style="font-family: sans-serif; max-width: 550px; margin: 0 auto; padding: 24px; border: 1px solid #e2e8f0; border-radius: 12px; background-color: #ffffff; color: #1e293b;">
         <div style="border-bottom: 2px solid #28d9bc; padding-bottom: 12px; margin-bottom: 20px;">
@@ -109,6 +109,7 @@ export function getTransferEmailTemplate(senderName: string, message: string, ro
           <p style="margin: 0 0 8px 0; font-size: 15px; color: #166534;"><strong>Transfer Summary:</strong></p>
           <ul style="margin: 0; padding-left: 20px; font-size: 14px; color: #14532d; line-height: 1.6;">
             <li><strong>Source Owner:</strong> ${senderName}</li>
+            ${senderEmail ? `<li><strong>Sender Custodian:</strong> ${senderEmail}</li>` : ''}
             <li><strong>Clones Created:</strong> ${rowCount} rows</li>
             <li><strong>Transfer Mode:</strong> ${modeText}</li>
             <li><strong>Isolated Tenant Status:</strong> Linked & Active</li>
