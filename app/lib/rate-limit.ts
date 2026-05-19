@@ -118,7 +118,7 @@ export const RateLimitPresets = {
 
     /** Moderate rate limit for OTP generation (3 requests per minute) */
     OTP: {
-        maxRequests: 3,
+        maxRequests: 6,
         windowMs: 60 * 1000, // 1 minute
     },
 
