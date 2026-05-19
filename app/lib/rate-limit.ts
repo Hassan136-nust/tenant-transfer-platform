@@ -130,7 +130,7 @@ export const RateLimitPresets = {
 
     /** Strict rate limit for data transfer (5 transfers per hour) */
     TRANSFER: {
-        maxRequests: 5,
+        maxRequests: 8,
         windowMs: 60 * 60 * 1000, // 1 hour
     },
 

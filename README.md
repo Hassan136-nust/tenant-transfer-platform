@@ -789,7 +789,7 @@ Get transfer history (sent and received)
 - ✅ **Authentication endpoints**: 5 requests/minute
 - ✅ **OTP generation**: 3 requests/minute
 - ✅ **API endpoints**: 30 requests/minute
-- ✅ **Data transfers**: 5 transfers/hour
+- ✅ **Data transfers**: 8 transfers/hour
 
 ### **4. Email Validation**
 - ✅ **ZeroBounce integration** for real-time validation
