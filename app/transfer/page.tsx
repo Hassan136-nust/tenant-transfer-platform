@@ -24,7 +24,7 @@ export default function TransferPage() {
   const [dataUnchangedSinceReceived, setDataUnchangedSinceReceived] = useState(false);
   const [newRowsCount, setNewRowsCount] = useState<number>(0);
   const [showReverseWarning, setShowReverseWarning] = useState(false);
-  const [reverseCountdown, setReverseCountdown] = useState(5);
+  const [reverseCountdown, setReverseCountdown] = useState(3);
   const [transferMode, setTransferMode] = useState<"all" | "new_only">("all");
   const countdownRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
@@ -52,6 +52,11 @@ export default function TransferPage() {
         setHasReceivedFromRecipient(cached.receivedFrom);
         setDataUnchangedSinceReceived(cached.unchanged);
         setNewRowsCount(cached.newRowsCount);
+        if (cached.receivedFrom) {
+          setTransferMode("new_only");
+        } else {
+          setTransferMode("all");
+        }
         return;
       }
 
@@ -71,6 +76,11 @@ export default function TransferPage() {
             setHasReceivedFromRecipient(receivedFrom);
             setDataUnchangedSinceReceived(unchanged);
             setNewRowsCount(newRows);
+            if (receivedFrom) {
+              setTransferMode("new_only");
+            } else {
+              setTransferMode("all");
+            }
           } else {
             setPendingTransferCount(null);
           }
@@ -87,6 +97,7 @@ export default function TransferPage() {
       setHasReceivedFromRecipient(false);
       setDataUnchangedSinceReceived(false);
       setNewRowsCount(0);
+      setTransferMode("all");
     }
   }, [email, selectedRecipient]);
 
@@ -132,7 +143,7 @@ export default function TransferPage() {
   // Start countdown when warning opens
   const openReverseWarning = () => {
     setShowReverseWarning(true);
-    setReverseCountdown(5);
+    setReverseCountdown(3);
     if (countdownRef.current) clearInterval(countdownRef.current);
     countdownRef.current = setInterval(() => {
       setReverseCountdown((prev) => {
@@ -562,14 +573,23 @@ export default function TransferPage() {
 
                   {/* Card 2: All Data */}
                   <div
-                    onClick={() => setTransferMode("all")}
+                    onClick={() => {
+                      if (hasReceivedFromRecipient) return;
+                      setTransferMode("all");
+                    }}
                     style={{
                       padding: "16px 20px", borderRadius: "16px",
                       background: transferMode === "all" ? "rgba(251, 191, 36, 0.05)" : "rgba(255,255,255,0.01)",
-                      border: transferMode === "all" ? "1.5px solid #fbbf24" : "1.5px solid rgba(255,255,255,0.05)",
+                      border: transferMode === "all"
+                        ? "1.5px solid #fbbf24"
+                        : hasReceivedFromRecipient
+                          ? "1.5px solid rgba(255,255,255,0.02)"
+                          : "1.5px solid rgba(255,255,255,0.05)",
                       boxShadow: transferMode === "all" ? "0 0 20px rgba(251, 191, 36, 0.1)" : "none",
-                      cursor: "pointer", display: "flex", gap: "14px", alignItems: "flex-start",
-                      transition: "all 0.25s ease"
+                      cursor: hasReceivedFromRecipient ? "not-allowed" : "pointer",
+                      display: "flex", gap: "14px", alignItems: "flex-start",
+                      transition: "all 0.25s ease",
+                      opacity: hasReceivedFromRecipient ? 0.35 : 1
                     }}
                   >
                     <div style={{
@@ -585,6 +605,11 @@ export default function TransferPage() {
                       <span style={{ color: "rgba(255,255,255,0.45)", fontSize: "12px", display: "block", marginTop: "2px", lineHeight: 1.4 }}>
                         Syncs all <strong>{rowCount} record(s)</strong> currently in this organization dashboard, including duplicates.
                       </span>
+                      {hasReceivedFromRecipient && (
+                        <span style={{ color: "#fda4af", fontSize: "11px", fontWeight: "600", display: "block", marginTop: "6px" }}>
+                          🔒 Restrictive Security Lock: Only new original record sync allowed for reverse transfers.
+                        </span>
+                      )}
                     </div>
                   </div>
                 </div>
